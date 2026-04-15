@@ -33,12 +33,12 @@ services:
     # Skip @commercehub/checkout-sdk-browser — the reference server never imports it
     # at runtime; the browser harness serves public/assets/*.js as vanilla ES modules.
     buildCommand: |
-      npm ci
+      npm ci --include=dev
       npm run build -w @commercehub/shared-types --if-present
       npm run build -w @commercehub/node
       npm run build -w @commercehub/reference-server
 
-    startCommand: node packages/reference-server/dist/index.js
+    startCommand: npm run start -w @commercehub/reference-server
 
     envVars:
       # CRITICAL: must not be 'production' — the HARNESS_MODE tripwire will exit 1
