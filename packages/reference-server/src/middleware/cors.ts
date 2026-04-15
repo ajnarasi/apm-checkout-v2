@@ -8,6 +8,15 @@
 import cors from 'cors';
 import type { CorsOptions } from 'cors';
 
+function isLoopbackOrigin(origin: string): boolean {
+  try {
+    const parsed = new URL(origin);
+    return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
 export function corsMiddleware(allowedOrigins: string[]) {
   const set = new Set(allowedOrigins);
   const options: CorsOptions = {
@@ -15,6 +24,9 @@ export function corsMiddleware(allowedOrigins: string[]) {
       // Allow same-origin / non-browser callers
       if (!origin) return callback(null, true);
       if (set.has(origin)) return callback(null, true);
+      // Local harness fallback: if no allowlist is configured, permit loopback origins.
+      // This avoids self-origin 500s on /harness/assets/* during local development.
+      if (set.size === 0 && isLoopbackOrigin(origin)) return callback(null, true);
       callback(new Error(`CORS: origin "${origin}" is not allowed`));
     },
     credentials: false,
