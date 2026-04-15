@@ -1,0 +1,181 @@
+{
+  "info": {
+    "name": "Commerce Hub Checkout SDK v2 — Reference Server",
+    "description": "Postman collection covering every endpoint exposed by the v2 reference server. Import and set the `baseUrl` collection variable to your local server (default http://localhost:3848).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3848" },
+    { "key": "merchantOrderId", "value": "ORDER-{{$timestamp}}" },
+    { "key": "webhookSecret", "value": "poc-secret" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /livez",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/livez", "host": ["{{baseUrl}}"], "path": ["livez"] }
+          }
+        },
+        {
+          "name": "GET /readyz",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/readyz", "host": ["{{baseUrl}}"], "path": ["readyz"] }
+          }
+        },
+        {
+          "name": "GET /metrics",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/metrics", "host": ["{{baseUrl}}"], "path": ["metrics"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "POST /v2/sessions — Klarna BNPL",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/v2/sessions", "host": ["{{baseUrl}}"], "path": ["v2", "sessions"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apm\": \"klarna\",\n  \"amount\": { \"value\": 49.99, \"currency\": \"USD\" },\n  \"merchantOrderId\": \"{{merchantOrderId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /v2/sessions — iDEAL bank-redirect",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/v2/sessions", "host": ["{{baseUrl}}"], "path": ["v2", "sessions"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apm\": \"ideal\",\n  \"amount\": { \"value\": 30.00, \"currency\": \"EUR\" },\n  \"merchantOrderId\": \"{{merchantOrderId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /v2/sessions — Apple Pay",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/v2/sessions", "host": ["{{baseUrl}}"], "path": ["v2", "sessions"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apm\": \"applepay\",\n  \"amount\": { \"value\": 9.99, \"currency\": \"USD\" },\n  \"merchantOrderId\": \"{{merchantOrderId}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders proxy",
+      "item": [
+        {
+          "name": "POST /v2/orders/:apm — authorize",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v2/orders/klarna",
+              "host": ["{{baseUrl}}"],
+              "path": ["v2", "orders", "klarna"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apm\": \"klarna\",\n  \"merchantOrderId\": \"{{merchantOrderId}}\",\n  \"amount\": { \"value\": 49.99, \"currency\": \"USD\" }\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /v2/orders/:orderId",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/v2/orders/O-123",
+              "host": ["{{baseUrl}}"],
+              "path": ["v2", "orders", "O-123"]
+            }
+          }
+        },
+        {
+          "name": "POST /v2/orders/:orderId/cancel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/v2/orders/O-123/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["v2", "orders", "O-123", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "POST /v2/webhooks/ch — payment.succeeded",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const CryptoJS = require('crypto-js');",
+                  "const body = pm.request.body.raw;",
+                  "const sig = CryptoJS.HmacSHA256(body, pm.variables.get('webhookSecret')).toString();",
+                  "pm.request.headers.add({ key: 'X-Webhook-Signature', value: 'sha256=' + sig });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/v2/webhooks/ch",
+              "host": ["{{baseUrl}}"],
+              "path": ["v2", "webhooks", "ch"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"orderId\": \"O-from-postman\",\n  \"kind\": \"payment.succeeded\",\n  \"occurredAt\": 1700000000000\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SSE event stream",
+      "item": [
+        {
+          "name": "GET /v2/events/:sessionId (SSE — use Postman streaming or curl)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "text/event-stream" }],
+            "url": {
+              "raw": "{{baseUrl}}/v2/events/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["v2", "events", "{{sessionId}}"]
+            }
+          },
+          "description": "Postman has limited SSE support — use `curl -N {{baseUrl}}/v2/events/{{sessionId}}` for live streaming."
+        }
+      ]
+    }
+  ]
+}

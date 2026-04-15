@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en" data-theme="obsidian">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content="noindex" />
+    <title>Fiserv · APM Checkout SDK v2.2 · Test Harness</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/tokens.css" />
+    <link rel="stylesheet" href="./assets/harness.css" />
+  </head>
+  <body>
+    <!-- ──────────────────────────────── Status rail ─────────────────── -->
+    <header class="rail" aria-label="Server status">
+      <div class="rail__brand">
+        <span class="rail__mark" aria-hidden="true">◆</span>
+        <div class="rail__brand-copy">
+          <div class="rail__wordmark">fiserv</div>
+          <div class="rail__product">APM Checkout SDK · v2.2</div>
+        </div>
+      </div>
+      <nav class="rail__crumbs" aria-label="Mode">
+        <span class="rail__crumb rail__crumb--live" data-status-mode>HARNESS</span>
+        <span class="rail__sep">/</span>
+        <span class="rail__crumb">Test Bed</span>
+      </nav>
+      <div class="rail__meters" role="group" aria-label="Catalog stats">
+        <div class="meter">
+          <div class="meter__label">APMs</div>
+          <div class="meter__value" data-stat="total">—</div>
+        </div>
+        <div class="meter">
+          <div class="meter__label">PPRO</div>
+          <div class="meter__value" data-stat="ppro">—</div>
+        </div>
+        <div class="meter">
+          <div class="meter__label">Direct</div>
+          <div class="meter__value" data-stat="direct">—</div>
+        </div>
+        <div class="meter">
+          <div class="meter__label">Scenarios</div>
+          <div class="meter__value" data-stat="scenarios">—</div>
+        </div>
+      </div>
+      <div class="rail__actions">
+        <div class="mode-toggle" role="tablist" aria-label="Main sections">
+          <button class="mode-toggle__btn is-active" type="button" data-mode="inspector" role="tab" aria-selected="true">
+            Inspector
+          </button>
+          <button class="mode-toggle__btn" type="button" data-mode="docs" role="tab" aria-selected="false">
+            Docs
+          </button>
+          <button class="mode-toggle__btn" type="button" data-mode="v1" role="tab" aria-selected="false">
+            V1 Legacy
+          </button>
+        </div>
+        <button class="btn btn--ghost" type="button" id="btn-reset" title="Clear inspector state">
+          ↺ Reset
+        </button>
+        <a class="btn btn--outline" href="/v2/harness/catalog" target="_blank" rel="noopener">
+          Catalog JSON ↗
+        </a>
+      </div>
+    </header>
+
+    <!-- ──────────────────────────────── Layout ──────────────────────── -->
+    <main class="layout" id="layout">
+      <!-- Column 1 — Filter rail -->
+      <aside class="filters" aria-label="APM filters">
+        <div class="filters__heading">
+          <div class="kicker">Filter</div>
+          <h2>Refine catalog</h2>
+          <p class="muted">
+            Narrow the catalog to a specific geo, currency, routing pattern or
+            capability. All filters compose.
+          </p>
+        </div>
+
+        <div class="filters__section">
+          <label class="field">
+            <span class="field__label">Search</span>
+            <input
+              type="search"
+              id="filter-search"
+              placeholder="ideal, klarna, JP…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </label>
+        </div>
+
+        <div class="filters__section">
+          <label class="field">
+            <span class="field__label">Pattern</span>
+            <select id="filter-pattern">
+              <option value="">All patterns</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field__label">Currency</span>
+            <select id="filter-currency">
+              <option value="">Any currency</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field__label">Country</span>
+            <select id="filter-country">
+              <option value="">Any country</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="filters__section">
+          <div class="field__label">Routing</div>
+          <div class="chips">
+            <button type="button" class="chip" data-toggle-route="ppro">
+              PPRO-routed
+            </button>
+            <button type="button" class="chip" data-toggle-route="direct">
+              Direct
+            </button>
+          </div>
+        </div>
+
+        <div class="filters__section">
+          <div class="field__label">Capability requirements</div>
+          <div class="chips chips--stack">
+            <label class="chip chip--check">
+              <input type="checkbox" data-cap-filter="supportsSeparateCapture" />
+              <span>Separate capture</span>
+            </label>
+            <label class="chip chip--check">
+              <input type="checkbox" data-cap-filter="supportsRefund" />
+              <span>Refund</span>
+            </label>
+            <label class="chip chip--check">
+              <input type="checkbox" data-cap-filter="supportsPartialCapture" />
+              <span>Partial capture</span>
+            </label>
+            <label class="chip chip--check">
+              <input type="checkbox" data-cap-filter="requiresWebhook" />
+              <span>Webhook driven</span>
+            </label>
+            <label class="chip chip--check">
+              <input type="checkbox" data-cap-filter="providesPromoWidget" />
+              <span>BNPL promo widget</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="filters__footer">
+          <button class="btn btn--ghost btn--block" type="button" id="btn-clear-filters">
+            Clear filters
+          </button>
+        </div>
+      </aside>
+
+      <!-- Column 2 — Catalog grid -->
+      <section class="catalog" aria-label="APM catalog">
+        <div class="catalog__heading">
+          <div class="catalog__heading-main">
+            <div class="kicker">Catalog</div>
+            <h2>
+              Alternative payment methods
+              <span class="pill pill--count" data-catalog-count>0</span>
+            </h2>
+            <p class="muted">
+              Every APM the v2.2 SDK can route. Click a card to load it into the
+              inspector dock on the right.
+            </p>
+          </div>
+          <div class="catalog__heading-actions">
+            <div class="tabs" role="tablist">
+              <button class="tab is-active" data-view="grid" type="button" role="tab" aria-selected="true">Grid</button>
+              <button class="tab" data-view="table" type="button" role="tab" aria-selected="false">Table</button>
+            </div>
+          </div>
+        </div>
+        <div class="catalog__body" data-catalog-body></div>
+      </section>
+
+      <!-- Column 3 — Inspector dock -->
+      <section class="inspector" aria-label="Inspector dock">
+        <div class="inspector__empty" data-inspector-empty>
+          <div class="kicker">Inspector</div>
+          <h2>Select an APM</h2>
+          <p class="muted">
+            The inspector dock shows wire previews, capability matrix, scenario
+            runner, live event stream, and state machine for the currently
+            selected APM.
+          </p>
+          <div class="empty-art" aria-hidden="true">
+            <div class="empty-art__ring"></div>
+            <div class="empty-art__ring empty-art__ring--2"></div>
+            <div class="empty-art__ring empty-art__ring--3"></div>
+            <div class="empty-art__dot"></div>
+          </div>
+        </div>
+
+        <div class="inspector__body" data-inspector-body hidden>
+          <!-- Inspector header -->
+          <header class="inspector__header">
+            <div class="inspector__title">
+              <div class="kicker" data-inspector-region>—</div>
+              <h2 data-inspector-name>—</h2>
+              <div class="inspector__subtitle">
+                <code data-inspector-id>—</code>
+                <span class="dot-sep">·</span>
+                <span data-inspector-pattern>—</span>
+                <span class="dot-sep">·</span>
+                <span data-inspector-aggregator>—</span>
+              </div>
+            </div>
+            <div class="inspector__wire">
+              <div class="wire">
+                <span class="wire__label">sourceType</span>
+                <code data-wire-source>—</code>
+              </div>
+              <div class="wire">
+                <span class="wire__label">walletType</span>
+                <code data-wire-wallet>—</code>
+              </div>
+              <div class="wire">
+                <span class="wire__label">provider</span>
+                <code data-wire-provider class="wire__highlight">—</code>
+              </div>
+            </div>
+          </header>
+
+          <!-- Inspector tabs -->
+          <nav class="inspector__tabs" role="tablist">
+            <button class="itab is-active" data-itab="runner" type="button">Runner</button>
+            <button class="itab" data-itab="sdk" type="button">SDK</button>
+            <button class="itab" data-itab="callbacks" type="button">Callbacks</button>
+            <button class="itab" data-itab="trace" type="button">Trace</button>
+            <button class="itab" data-itab="capabilities" type="button">Capabilities</button>
+            <button class="itab" data-itab="wire" type="button">Wire</button>
+            <button class="itab" data-itab="state" type="button">State</button>
+            <button class="itab" data-itab="events" type="button">Events</button>
+            <button class="itab" data-itab="network" type="button">Network</button>
+          </nav>
+
+          <!-- Runner pane -->
+          <section class="ipane is-active" data-ipane="runner">
+            <div class="runner__form">
+              <div class="field-row">
+                <label class="field">
+                  <span class="field__label">Amount</span>
+                  <input type="number" id="runner-amount" value="49.99" step="0.01" min="0.01" />
+                </label>
+                <label class="field">
+                  <span class="field__label">Currency</span>
+                  <select id="runner-currency"></select>
+                </label>
+                <label class="field">
+                  <span class="field__label">Initiator</span>
+                  <select id="runner-initiator">
+                    <option value="GATEWAY">GATEWAY</option>
+                    <option value="MERCHANT">MERCHANT</option>
+                  </select>
+                </label>
+              </div>
+              <label class="field">
+                <span class="field__label">Merchant order id</span>
+                <input type="text" id="runner-order" value="" spellcheck="false" />
+              </label>
+            </div>
+
+            <div class="runner__scenarios" data-runner-scenarios>
+              <!-- scenario buttons grouped by category -->
+            </div>
+
+            <div class="runner__actions">
+              <button class="btn btn--primary btn--lg" id="btn-run" type="button" disabled>
+                ▶ Run scenario
+              </button>
+              <button class="btn btn--outline" id="btn-run-all" type="button" disabled>
+                ⧉ Run eligible batch
+              </button>
+            </div>
+
+            <div class="runner__result" data-runner-result hidden>
+              <div class="runner__result-heading">
+                <span class="kicker">Last run</span>
+                <span class="badge" data-runner-status>idle</span>
+              </div>
+              <div class="runner__result-body" data-runner-summary></div>
+            </div>
+          </section>
+
+          <!-- SDK pane -->
+          <section class="ipane" data-ipane="sdk">
+            <div class="sdk" data-sdk-root>
+              <div class="log__empty">SDK registry not loaded yet.</div>
+            </div>
+          </section>
+
+          <!-- Callbacks pane -->
+          <section class="ipane" data-ipane="callbacks">
+            <div class="callbacks" data-callbacks-root>
+              <div class="log__empty">Select an APM to see its interactive callbacks.</div>
+            </div>
+          </section>
+
+          <!-- Trace pane — Plaid-style Trace Console + 6-lane commerce flow -->
+          <section class="ipane" data-ipane="trace">
+            <div class="tcon" data-trace-console-root>
+              <!-- eligibility bar + run button + persona toggle render here -->
+            </div>
+            <div class="tcon__body">
+              <div class="trace" data-trace-root>
+                <div class="log__empty">Commerce flow will render here.</div>
+              </div>
+              <aside class="tcon__inspector" data-trace-inspector>
+                <div class="log__empty">Run a scenario to see request / response events.</div>
+              </aside>
+            </div>
+            <pre class="tcon__snippet" data-trace-snippet hidden></pre>
+          </section>
+
+          <!-- Capabilities pane -->
+          <section class="ipane" data-ipane="capabilities">
+            <div class="capgrid" data-capgrid></div>
+          </section>
+
+          <!-- Wire pane -->
+          <section class="ipane" data-ipane="wire">
+            <div class="wire-section">
+              <div class="wire-section__heading">
+                <div class="kicker">POST /v2/sessions</div>
+                <p class="muted">Request the merchant frontend sends to the reference server before the SDK boots.</p>
+              </div>
+              <pre class="code-block" data-wire-session>—</pre>
+            </div>
+            <div class="wire-section">
+              <div class="wire-section__heading">
+                <div class="kicker">POST /v2/orders/:apm</div>
+                <p class="muted">
+                  Request body the reference server forwards to CH
+                  <code>/checkouts/v1/orders</code>. This is the load-bearing
+                  v2.2 change — <code>paymentMethod.provider</code> routes CH to
+                  the right downstream.
+                </p>
+              </div>
+              <pre class="code-block" data-wire-order>—</pre>
+            </div>
+          </section>
+
+          <!-- State pane -->
+          <section class="ipane" data-ipane="state">
+            <div class="statemachine" data-statemachine>
+              <!-- rendered by runner.js -->
+            </div>
+          </section>
+
+          <!-- Events pane -->
+          <section class="ipane" data-ipane="events">
+            <div class="log" data-event-log>
+              <div class="log__empty">No events yet. Run a scenario to populate the stream.</div>
+            </div>
+          </section>
+
+          <!-- Network pane -->
+          <section class="ipane" data-ipane="network">
+            <div class="netlog" data-net-log>
+              <div class="netlog__empty">No requests yet. Run a scenario to populate the network log.</div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <!-- ──────────────────────────────── Docs mode ─────────────────── -->
+    <div class="docs-root" data-docs-root>
+      <!-- Populated by docs.js -->
+    </div>
+
+    <!-- ──────────────────────────────── V1 Legacy mode ────────────── -->
+    <div class="v1-root" data-v1-root>
+      <!-- Populated by v1.js on first activation -->
+    </div>
+
+    <footer class="foot">
+      <div class="foot__left">
+        <span class="kicker">v2.2 · harness</span>
+        <span class="muted">
+          Reference server short-circuits CH via <code>HARNESS_MODE=true</code>.
+          No production credentials required.
+        </span>
+      </div>
+      <div class="foot__right">
+        <span class="muted" data-status-health>/readyz: —</span>
+      </div>
+    </footer>
+
+    <script type="module" src="./assets/app.js"></script>
+  </body>
+</html>

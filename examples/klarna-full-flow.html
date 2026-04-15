@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Klarna — Widget + Authorize Flow</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; }
+    h1 { font-size: 24px; }
+    #klarna-container { min-height: 280px; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin: 12px 0; background: #fafafa; }
+    button { font: inherit; padding: 10px 16px; background: #1a73e8; color: white; border: 0; border-radius: 6px; cursor: pointer; margin-right: 8px; }
+    .log { background: #111; color: #0f0; padding: 12px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 12px; max-height: 280px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>Klarna — Widget + Authorize Flow</h1>
+  <p>Klarna is the only widget-based BNPL adapter. The merchant backend creates a session, Commerce Hub passes through Klarna's <code>client_token</code> as <code>providerClientToken</code>, and the SDK uses it to bootstrap <code>Klarna.Payments.init</code>.</p>
+
+  <button id="init">1. Init + Render Klarna widget</button>
+  <button id="auth" disabled>2. Authorize</button>
+
+  <div id="klarna-container">(Klarna widget will mount here)</div>
+
+  <h3>Events</h3>
+  <div class="log" id="log">(no events yet)</div>
+
+  <script type="module">
+    import { createCheckout } from '../packages/checkout-sdk-browser/src/index.ts';
+
+    const REFERENCE_SERVER = 'http://localhost:3848';
+    const log = document.getElementById('log');
+    const append = (msg) => {
+      if (log.textContent === '(no events yet)') log.textContent = '';
+      log.textContent += `[${new Date().toISOString().slice(11, 19)}] ${msg}\n`;
+      log.scrollTop = log.scrollHeight;
+    };
+
+    let checkout;
+
+    document.getElementById('init').addEventListener('click', async () => {
+      const merchantOrderId = `KL-${Date.now()}`;
+      append(`creating session…`);
+      const sessionRes = await fetch(`${REFERENCE_SERVER}/v2/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apm: 'klarna',
+          amount: { value: 49.99, currency: 'USD' },
+          merchantOrderId,
+        }),
+      });
+      const session = await sessionRes.json();
+      append(`session: ${session.sessionId}`);
+      append(`providerClientToken: ${session.providerClientToken ?? '(none — Klarna widget will not load)'}`);
+
+      checkout = createCheckout({
+        apm: 'klarna',
+        amount: { value: 49.99, currency: 'USD' },
+        merchantOrderId,
+        containerId: 'klarna-container',
+        credentials: {
+          accessToken: session.accessToken,
+          sessionId: session.sessionId,
+          chBaseUrl: REFERENCE_SERVER,
+          providerClientToken: session.providerClientToken,
+          eventsBaseUrl: REFERENCE_SERVER,
+        },
+      });
+
+      checkout.onAny((event) => append(`event: ${event.type}`));
+
+      try {
+        await checkout.init();
+        await checkout.render();
+        document.getElementById('auth').disabled = false;
+      } catch (err) {
+        append(`error: ${err.message}`);
+      }
+    });
+
+    document.getElementById('auth').addEventListener('click', async () => {
+      try {
+        await checkout.authorize();
+      } catch (err) {
+        append(`error: ${err.message}`);
+      }
+    });
+  </script>
+</body>
+</html>

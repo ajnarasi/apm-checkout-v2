@@ -1,0 +1,34 @@
+services:
+  reference-server:
+    build:
+      context: ../..
+      dockerfile: packages/reference-server/Dockerfile
+    ports:
+      - "3848:3848"
+    environment:
+      NODE_ENV: development
+      PORT: 3848
+      CH_BASE_URL: ${CH_BASE_URL}
+      CH_API_KEY: ${CH_API_KEY}
+      CH_STATIC_ACCESS_TOKEN: ${CH_STATIC_ACCESS_TOKEN}
+      CH_WEBHOOK_SECRET: ${CH_WEBHOOK_SECRET:-poc-secret}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173,http://localhost:8080}
+      INSTANCE_COUNT: 1
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3848/livez').then(r => process.exit(r.ok ? 0 : 1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # Optional Prometheus scraper for OBSERVABILITY.md walkthrough.
+  # Enable with `docker compose --profile observability up`.
+  prometheus:
+    profiles: ["observability"]
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - reference-server

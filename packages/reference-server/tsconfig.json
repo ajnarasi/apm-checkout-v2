@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "lib": ["ES2022"],
+    "paths": {
+      "@commercehub/node": ["../commerce-hub-node/src/index.ts"],
+      "@commercehub/shared-types": ["../shared-types/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../shared-types" },
+    { "path": "../commerce-hub-node" }
+  ]
+}

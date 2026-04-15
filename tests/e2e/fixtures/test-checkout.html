@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>v2.1 E2E Test Checkout Page</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; max-width: 720px; margin: 32px auto; padding: 0 16px; }
+    button { font: inherit; padding: 10px 20px; background: #1a73e8; color: white; border: 0; border-radius: 6px; cursor: pointer; margin-right: 8px; }
+    button:disabled { background: #bbb; cursor: not-allowed; }
+    #klarna-container { min-height: 200px; border: 1px solid #ddd; padding: 12px; margin: 12px 0; background: #fafafa; }
+    #event-log { background: #111; color: #0f0; padding: 12px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 12px; max-height: 320px; overflow: auto; }
+    #state { font-family: ui-monospace, monospace; padding: 4px 8px; background: #eee; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>v2.1 E2E Test Checkout</h1>
+  <p>Test fixture for Playwright. Does NOT load CDN scripts — Klarna is faked via window stub injected by Playwright addInitScript.</p>
+
+  <div>
+    State: <span id="state" data-testid="adapter-state">idle</span>
+  </div>
+
+  <button id="pay" data-testid="pay-button">Pay with Klarna</button>
+  <button id="capture" data-testid="capture-button" disabled>Capture (merchant-initiated)</button>
+  <button id="void" data-testid="void-button" disabled>Void</button>
+
+  <h3>Klarna Widget</h3>
+  <div id="klarna-container"></div>
+
+  <h3>Event Log</h3>
+  <pre id="event-log" data-testid="event-log"></pre>
+
+  <script type="module">
+    // The SDK is loaded from the built dist/. Production tests build first.
+    // For dev iteration, vite or esbuild can serve the TS source on the fly.
+    import { createCheckout } from '/dist/checkout-sdk-browser/index.js';
+
+    const log = document.getElementById('event-log');
+    const stateEl = document.getElementById('state');
+    const payBtn = document.getElementById('pay');
+    const captureBtn = document.getElementById('capture');
+    const voidBtn = document.getElementById('void');
+
+    /**
+     * Test mode flag — set via URL param `?initiator=MERCHANT` to exercise
+     * the awaiting_merchant_capture flow, otherwise defaults to GATEWAY.
+     */
+    const params = new URLSearchParams(window.location.search);
+    const paymentInitiator = params.get('initiator') === 'MERCHANT' ? 'MERCHANT' : 'GATEWAY';
+
+    const append = (msg) => {
+      log.textContent += `${msg}\n`;
+      log.scrollTop = log.scrollHeight;
+    };
+
+    let checkoutHandle;
+
+    payBtn.addEventListener('click', async () => {
+      append(`[click] paymentInitiator=${paymentInitiator}`);
+
+      // 1) Merchant backend creates the session.
+      const sessionRes = await fetch('/v2/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apm: 'klarna',
+          amount: { value: 49.99, currency: 'USD' },
+          merchantOrderId: `E2E-${Date.now()}`,
+          paymentInitiator,
+        }),
+      });
+      const session = await sessionRes.json();
+      append(`[session] ${JSON.stringify({ sessionId: session.sessionId, paymentInitiator: session.paymentInitiator })}`);
+
+      // 2) Browser SDK consumes the session.
+      checkoutHandle = createCheckout({
+        apm: 'klarna',
+        amount: { value: 49.99, currency: 'USD' },
+        merchantOrderId: `E2E-${Date.now()}`,
+        containerId: 'klarna-container',
+        credentials: {
+          accessToken: session.accessToken,
+          sessionId: session.sessionId,
+          chBaseUrl: window.location.origin,
+          providerClientToken: session.providerClientToken,
+          eventsBaseUrl: window.location.origin,
+          paymentInitiator: session.paymentInitiator,
+        },
+      });
+
+      checkoutHandle.onAny((event) => {
+        append(`[event] ${event.type}`);
+        const adapter = checkoutHandle.adapter;
+        if (typeof adapter.getState === 'function') {
+          stateEl.textContent = adapter.getState();
+        }
+        if (event.type === 'AWAITING_MERCHANT_CAPTURE') {
+          captureBtn.disabled = false;
+          voidBtn.disabled = false;
+        }
+        if (event.type === 'PAYMENT_COMPLETED' || event.type === 'PAYMENT_FAILED' || event.type === 'PAYMENT_CANCELLED') {
+          captureBtn.disabled = true;
+          voidBtn.disabled = true;
+        }
+      });
+
+      try {
+        await checkoutHandle.init();
+        await checkoutHandle.render();
+        await checkoutHandle.authorize();
+        append(`[authorize] returned`);
+      } catch (err) {
+        append(`[error] ${err.message}`);
+      }
+    });
+
+    captureBtn.addEventListener('click', async () => {
+      append('[click] capture');
+      try {
+        await checkoutHandle.capture();
+      } catch (err) {
+        append(`[error] capture: ${err.message}`);
+      }
+    });
+
+    voidBtn.addEventListener('click', async () => {
+      append('[click] void');
+      try {
+        await checkoutHandle.void('e2e test cancellation');
+      } catch (err) {
+        append(`[error] void: ${err.message}`);
+      }
+    });
+  </script>
+</body>
+</html>

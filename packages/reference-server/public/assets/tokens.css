@@ -1,0 +1,105 @@
+/* ─────────────────────────────────────────────────────────────────────
+ * v2.2 Test Harness — design tokens
+ *
+ * Fiserv orange on obsidian charcoal. Editorial, not dashboard-by-numbers.
+ * Four surface layers + amber hairlines for depth; mono sections for wire
+ * payloads; Inter for chrome. No generic template look.
+ * ───────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Brand ── */
+  --brand-orange:       oklch(71% 0.208 48);        /* Fiserv orange */
+  --brand-orange-hot:   oklch(76% 0.220 44);        /* hover / focus ring */
+  --brand-orange-deep:  oklch(58% 0.205 44);        /* pressed / text on orange bg */
+  --brand-amber:        oklch(80% 0.180 72);        /* hairlines + BNPL accents */
+  --brand-amber-soft:   oklch(80% 0.180 72 / 0.15);
+
+  /* ── Obsidian surfaces (4 depth layers) ── */
+  --surface-00:         oklch(12% 0.010 50);        /* page background (deep) */
+  --surface-10:         oklch(16% 0.012 50);        /* rail + filter column */
+  --surface-20:         oklch(19% 0.014 48);        /* catalog surface */
+  --surface-30:         oklch(22% 0.016 46);        /* inspector dock */
+  --surface-40:         oklch(27% 0.018 44);        /* hoverable card */
+  --surface-50:         oklch(32% 0.020 42);        /* elevated / wire blocks */
+  --surface-glass:      color-mix(in oklch, oklch(22% 0.016 46) 78%, oklch(71% 0.208 48) 0%);
+
+  /* ── Text ── */
+  --ink-0:              oklch(98% 0 0);              /* headings */
+  --ink-1:              oklch(92% 0 0);              /* body */
+  --ink-2:              oklch(76% 0.005 50);         /* muted body */
+  --ink-3:              oklch(58% 0.010 50);         /* tertiary, kickers */
+  --ink-4:              oklch(42% 0.012 50);         /* disabled, seps */
+
+  /* ── Semantic ── */
+  --ok:                 oklch(78% 0.170 155);        /* completed / success */
+  --ok-bg:              oklch(78% 0.170 155 / 0.14);
+  --warn:               oklch(82% 0.180 85);         /* pending / awaiting */
+  --warn-bg:            oklch(82% 0.180 85 / 0.14);
+  --err:                oklch(68% 0.200 22);         /* failed / declined */
+  --err-bg:             oklch(68% 0.200 22 / 0.14);
+  --info:               oklch(74% 0.130 230);        /* cancelled / info */
+  --info-bg:            oklch(74% 0.130 230 / 0.14);
+
+  /* ── Hairlines + edges ── */
+  --edge-0:             oklch(30% 0.012 48);         /* subtle divider */
+  --edge-1:             oklch(38% 0.016 46);         /* card edge */
+  --edge-hot:           oklch(71% 0.208 48 / 0.45);  /* orange focus edge */
+  --edge-amber:         oklch(80% 0.180 72 / 0.32);  /* amber hairline */
+
+  /* ── Typography ── */
+  --font-sans:
+    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:
+    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Fluid type scale */
+  --text-xs:    clamp(0.70rem, 0.68rem + 0.1vw, 0.75rem);
+  --text-sm:    clamp(0.80rem, 0.78rem + 0.1vw, 0.86rem);
+  --text-base:  clamp(0.92rem, 0.88rem + 0.2vw, 1.00rem);
+  --text-md:    clamp(1.05rem, 0.98rem + 0.3vw, 1.18rem);
+  --text-lg:    clamp(1.30rem, 1.16rem + 0.6vw, 1.55rem);
+  --text-xl:    clamp(1.72rem, 1.48rem + 1.1vw, 2.20rem);
+  --text-hero:  clamp(2.40rem, 1.80rem + 2.8vw, 3.60rem);
+
+  /* Tracking + weight */
+  --kicker-tracking: 0.14em;
+  --mono-tracking:   0.01em;
+
+  /* ── Motion ── */
+  --dur-fast:   120ms;
+  --dur-med:    220ms;
+  --dur-slow:   380ms;
+  --ease-out:   cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ── Elevation (depth via layered shadow + inset light) ── */
+  --shadow-sm:
+    0 1px 0 oklch(100% 0 0 / 0.02) inset,
+    0 1px 2px oklch(0% 0 0 / 0.35),
+    0 0 0 1px var(--edge-0);
+  --shadow-md:
+    0 1px 0 oklch(100% 0 0 / 0.03) inset,
+    0 8px 24px -8px oklch(0% 0 0 / 0.55),
+    0 0 0 1px var(--edge-0);
+  --shadow-lg:
+    0 1px 0 oklch(100% 0 0 / 0.04) inset,
+    0 28px 64px -16px oklch(0% 0 0 / 0.65),
+    0 0 0 1px var(--edge-1);
+  --shadow-hot:
+    0 0 0 1px var(--edge-hot),
+    0 0 0 4px oklch(71% 0.208 48 / 0.08),
+    0 20px 40px -16px oklch(71% 0.208 48 / 0.45);
+
+  /* ── Radii ── */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-xl: 32px;
+
+  /* ── Layout sizes ── */
+  --rail-h: 64px;
+  --filters-w: 296px;
+  --inspector-w: 520px;
+  --gutter: 20px;
+}

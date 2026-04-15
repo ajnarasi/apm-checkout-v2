@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zepto PayTo — Bank Redirect Flow</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; }
+    h1 { font-size: 24px; }
+    button { font: inherit; padding: 10px 16px; background: #1a73e8; color: white; border: 0; border-radius: 6px; cursor: pointer; }
+    .log { background: #111; color: #0f0; padding: 12px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 12px; max-height: 280px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>Zepto PayTo — Bank Redirect Flow</h1>
+  <p>Zepto is the Australian PayTo / NPP bank-redirect adapter. The merchant backend creates a PayTo agreement via Commerce Hub (or directly via Zepto), and the SDK receives an <code>authorization_url</code> in the <code>OrderResult.nextAction</code> for the user to authorize at their bank.</p>
+
+  <button id="run">Pay AUD 49.99 with Zepto</button>
+
+  <h3>Events</h3>
+  <div class="log" id="log">(no events yet)</div>
+
+  <script type="module">
+    import { createCheckout } from '../packages/checkout-sdk-browser/src/index.ts';
+
+    const REFERENCE_SERVER = 'http://localhost:3848';
+    const log = document.getElementById('log');
+    const append = (msg) => {
+      if (log.textContent === '(no events yet)') log.textContent = '';
+      log.textContent += `[${new Date().toISOString().slice(11, 19)}] ${msg}\n`;
+      log.scrollTop = log.scrollHeight;
+    };
+
+    document.getElementById('run').addEventListener('click', async () => {
+      const merchantOrderId = `ZPT-${Date.now()}`;
+      const sessionRes = await fetch(`${REFERENCE_SERVER}/v2/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apm: 'zepto',
+          amount: { value: 49.99, currency: 'AUD' },
+          merchantOrderId,
+        }),
+      });
+      const session = await sessionRes.json();
+      append(`session: ${session.sessionId}`);
+
+      const checkout = createCheckout({
+        apm: 'zepto',
+        amount: { value: 49.99, currency: 'AUD' },
+        merchantOrderId,
+        credentials: {
+          accessToken: session.accessToken,
+          sessionId: session.sessionId,
+          chBaseUrl: REFERENCE_SERVER,
+          eventsBaseUrl: REFERENCE_SERVER,
+        },
+        returnUrls: {
+          successUrl: window.location.href,
+          cancelUrl: window.location.href,
+        },
+      });
+
+      checkout.onAny((event) => {
+        append(`event: ${event.type}`);
+        if (event.type === 'REDIRECT_REQUIRED') {
+          append(`redirectUrl: ${event.redirectUrl}`);
+          append(`(in production, the user would now navigate to authorize at their bank)`);
+        }
+      });
+
+      await checkout.init();
+      try {
+        await checkout.authorize();
+      } catch (err) {
+        append(`error: ${err.message}`);
+      }
+    });
+  </script>
+</body>
+</html>

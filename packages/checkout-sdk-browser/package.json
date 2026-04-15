@@ -1,0 +1,33 @@
+{
+  "name": "@commercehub/checkout-sdk-browser",
+  "version": "2.0.0-poc.0",
+  "description": "Browser SDK for Commerce Hub — consumes a pre-created session token and handles APM authorization flows",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "publishConfig": {
+    "tag": "poc",
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@commercehub/shared-types": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "@types/node": "^20.0.0",
+    "jsdom": "^24.0.0"
+  },
+  "files": ["dist"]
+}

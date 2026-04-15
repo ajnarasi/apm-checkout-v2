@@ -1,0 +1,13 @@
+{
+  "name": "@commercehub/shared-types",
+  "version": "2.0.0-poc.0",
+  "description": "Zero-runtime type definitions shared between commerce-hub-node and checkout-sdk-browser",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "files": ["src"]
+}

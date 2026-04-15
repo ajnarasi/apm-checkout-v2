@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>iDEAL — Async Webhook Flow Example</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; }
+    h1 { font-size: 24px; }
+    .step { padding: 12px; margin: 12px 0; border-left: 3px solid #ccc; background: #f7f7f7; }
+    .step.active { border-color: #1a73e8; background: #e8f0fe; }
+    .step.done { border-color: #0f9d58; background: #e6f4ea; }
+    button { font: inherit; padding: 10px 16px; background: #1a73e8; color: white; border: 0; border-radius: 6px; cursor: pointer; }
+    .log { background: #111; color: #0f0; padding: 12px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 12px; max-height: 300px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>iDEAL — Async Webhook Flow</h1>
+  <p>iDEAL is bank-redirect + async settlement. The user authorizes at their bank, Commerce Hub fires a webhook, the reference server relays it via SSE, and the SDK transitions <code>pending → completed</code>.</p>
+
+  <div id="step1" class="step">1. Create session via merchant backend</div>
+  <div id="step2" class="step">2. Initialize SDK and call authorize() — get redirect URL</div>
+  <div id="step3" class="step">3. (Simulated) user authorizes at bank</div>
+  <div id="step4" class="step">4. Webhook arrives at reference server → SSE → browser SDK</div>
+  <div id="step5" class="step">5. PAYMENT_COMPLETED fires</div>
+
+  <button id="run">Run iDEAL flow</button>
+  <h3>Events</h3>
+  <div class="log" id="log">(no events yet)</div>
+
+  <script type="module">
+    import { createCheckout } from '../packages/checkout-sdk-browser/src/index.ts';
+
+    const REFERENCE_SERVER = 'http://localhost:3848';
+    const log = document.getElementById('log');
+    const append = (msg) => {
+      if (log.textContent === '(no events yet)') log.textContent = '';
+      log.textContent += `[${new Date().toISOString().slice(11, 19)}] ${msg}\n`;
+      log.scrollTop = log.scrollHeight;
+    };
+    const mark = (id, state) => {
+      const el = document.getElementById(id);
+      el.classList.remove('active', 'done');
+      if (state) el.classList.add(state);
+    };
+
+    document.getElementById('run').addEventListener('click', async () => {
+      mark('step1', 'active');
+      const merchantOrderId = `ORDER-${Date.now()}`;
+      const sessionRes = await fetch(`${REFERENCE_SERVER}/v2/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apm: 'ideal',
+          amount: { value: 30.00, currency: 'EUR' },
+          merchantOrderId,
+        }),
+      });
+      const session = await sessionRes.json();
+      append(`session created: ${session.sessionId}`);
+      mark('step1', 'done');
+      mark('step2', 'active');
+
+      const checkout = createCheckout({
+        apm: 'ideal',
+        amount: { value: 30.00, currency: 'EUR' },
+        merchantOrderId,
+        credentials: {
+          accessToken: session.accessToken,
+          sessionId: session.sessionId,
+          chBaseUrl: REFERENCE_SERVER,
+          eventsBaseUrl: REFERENCE_SERVER,
+        },
+        returnUrls: {
+          successUrl: window.location.href,
+          cancelUrl: window.location.href,
+        },
+      });
+
+      checkout.onAny((event) => {
+        append(`event: ${event.type}`);
+        if (event.type === 'PAYMENT_PENDING') {
+          mark('step2', 'done');
+          mark('step3', 'active');
+          // Simulate the user authorizing at the bank by firing a webhook directly
+          setTimeout(async () => {
+            mark('step3', 'done');
+            mark('step4', 'active');
+            await fetch(`${REFERENCE_SERVER}/v2/webhooks/ch`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: session.sessionId,
+                orderId: 'O-simulated',
+                kind: 'payment.succeeded',
+                occurredAt: Date.now(),
+              }),
+            });
+          }, 2000);
+        }
+        if (event.type === 'PAYMENT_COMPLETED') {
+          mark('step4', 'done');
+          mark('step5', 'done');
+        }
+      });
+
+      await checkout.init();
+      await checkout.render();
+      try {
+        await checkout.authorize();
+      } catch (err) {
+        append(`error: ${err.message}`);
+      }
+    });
+  </script>
+</body>
+</html>

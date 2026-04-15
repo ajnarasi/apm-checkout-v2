@@ -1,0 +1,27 @@
+{
+  "name": "@commercehub/checkout-sdk-v2-workspace",
+  "private": true,
+  "version": "2.0.0-poc.0",
+  "description": "Commerce Hub Checkout SDK v2 — industry-standard session pattern for 55 APMs",
+  "workspaces": [
+    "packages/shared-types",
+    "packages/commerce-hub-node",
+    "packages/checkout-sdk-browser",
+    "packages/reference-server"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}
