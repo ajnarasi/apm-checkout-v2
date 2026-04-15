@@ -1,0 +1,62 @@
+# Render Blueprint — APM Checkout SDK v2.2 Harness
+#
+# Deploys packages/reference-server as a long-running Express web service.
+# Render was chosen over Vercel because the reference server has:
+#   - Server-Sent Events (/v2/events/:sessionId) — persistent HTTP connections
+#   - child_process.spawn for V1 legacy reverse proxy
+#   - In-memory OrderResultCache + webhook bus that must persist across requests
+# All three are incompatible with the Vercel serverless model.
+#
+# To deploy:
+#   1. Render dashboard → New → Blueprint
+#   2. Connect ajnarasi/apm-checkout-v2
+#   3. Apply — first build takes ~3-5 min
+#
+# IMPORTANT: NODE_ENV MUST be `development` (or `test`). The refuse-production
+# tripwire in packages/reference-server/src/env.ts:109 throws and exits if
+# NODE_ENV=production AND HARNESS_MODE=true, because HARNESS_MODE short-circuits
+# the Commerce Hub calls with synthetic responses and must never run against
+# production credentials. This is by design.
+
+services:
+  - type: web
+    name: apm-checkout-v2-harness
+    runtime: node
+    plan: free               # bump to `starter` ($7/mo) to avoid 15-min cold starts
+    region: oregon           # choose closest to your demo audience
+    branch: main
+    rootDir: .
+    autoDeploy: true
+    healthCheckPath: /v2/harness/status
+
+    # Build: install the monorepo + compile the two TS packages the server depends on.
+    # Skip @commercehub/checkout-sdk-browser — the reference server never imports it
+    # at runtime; the browser harness serves public/assets/*.js as vanilla ES modules.
+    buildCommand: |
+      npm ci
+      npm run build -w @commercehub/shared-types --if-present
+      npm run build -w @commercehub/node
+      npm run build -w @commercehub/reference-server
+
+    startCommand: node packages/reference-server/dist/index.js
+
+    envVars:
+      # CRITICAL: must not be 'production' — the HARNESS_MODE tripwire will exit 1
+      - key: NODE_ENV
+        value: development
+
+      # Synthetic CH responses driven by X-Harness-Scenario headers.
+      # No Commerce Hub credentials required for the deploy.
+      - key: HARNESS_MODE
+        value: "true"
+
+      # Pin Node to the engines.node minimum from the root package.json
+      - key: NODE_VERSION
+        value: "20.18.0"
+
+      # Pino log level
+      - key: LOG_LEVEL
+        value: info
+
+      # Render injects PORT automatically; the Express app reads process.env.PORT.
+      # No manual override needed.
