@@ -3,11 +3,12 @@
   "version": "2.0.0-poc.0",
   "description": "Zero-runtime type definitions shared between commerce-hub-node and checkout-sdk-browser",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "sideEffects": false,
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
-  "files": ["src"]
+  "files": ["dist"]
 }
