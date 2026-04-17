@@ -57,7 +57,7 @@ export interface ApmCommerceHubMapping {
   /** Pattern bucket (matches AdapterCapabilities.pattern). */
   pattern:
     | 'redirect'
-    | 'tokenization'
+    | 'bnpl'
     | 'native-wallet'
     | 'button-sdk'
     | 'qr'
@@ -204,32 +204,32 @@ const DIRECT_METHODS: readonly ApmCommerceHubMapping[] = [
 
   // ── Direct BNPL (tokenization base) ──
   {
-    id: 'klarna', displayName: 'Klarna', pattern: 'tokenization',
+    id: 'klarna', displayName: 'Klarna', pattern: 'bnpl',
     aggregator: 'KLARNA',
     chSourceType: 'AlternativePaymentMethod', chProvider: 'Klarna',
     currencies: ['USD', 'EUR', 'GBP', 'SEK', 'NOK', 'DKK', 'AUD', 'CAD', 'CHF', 'PLN'],
     countries: ['US', 'GB', 'DE', 'AT', 'CH', 'NL', 'BE', 'SE', 'NO', 'DK', 'FI', 'IT', 'ES', 'FR', 'AU', 'CA'],
   },
   {
-    id: 'affirm', displayName: 'Affirm', pattern: 'tokenization',
+    id: 'affirm', displayName: 'Affirm', pattern: 'bnpl',
     aggregator: 'AFFIRM',
     chSourceType: 'AlternativePaymentMethod', chProvider: 'Affirm',
     currencies: ['USD'], countries: ['US', 'CA'],
   },
   {
-    id: 'afterpay', displayName: 'Afterpay', pattern: 'tokenization',
+    id: 'afterpay', displayName: 'Afterpay', pattern: 'bnpl',
     aggregator: 'AFTERPAY',
     chSourceType: 'AlternativePaymentMethod', chProvider: 'Afterpay',
     currencies: ['USD', 'GBP', 'EUR', 'AUD', 'CAD', 'NZD'], countries: ['US', 'GB', 'AU', 'NZ', 'CA'],
   },
   {
-    id: 'sezzle', displayName: 'Sezzle', pattern: 'tokenization',
+    id: 'sezzle', displayName: 'Sezzle', pattern: 'bnpl',
     aggregator: 'OTHER',
     chSourceType: 'AlternativePaymentMethod', chProvider: 'Sezzle',
     currencies: ['USD', 'CAD'], countries: ['US', 'CA'],
   },
   {
-    id: 'zip', displayName: 'Zip', pattern: 'tokenization',
+    id: 'zip', displayName: 'Zip', pattern: 'bnpl',
     aggregator: 'OTHER',
     chSourceType: 'AlternativePaymentMethod', chProvider: 'Zip',
     currencies: ['USD', 'AUD', 'NZD', 'GBP'], countries: ['US', 'AU', 'NZ', 'GB'],

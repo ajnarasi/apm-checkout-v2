@@ -22,7 +22,7 @@
 import type { AdapterCapabilities } from '@commercehub/shared-types';
 import { defaultCallbacks, defaultInteractive } from '@commercehub/shared-types';
 import { TokenizationAdapterBase } from '../base/tokenization-base.js';
-import type { TokenizationToken } from '../base/provider-token.js';
+import type { BnplToken } from '../base/provider-token.js';
 import { loadScript, ScriptLoadError } from '../../core/load-script.js';
 
 interface ZipCheckoutResult {
@@ -56,10 +56,10 @@ export class ZipAdapter extends TokenizationAdapterBase {
   readonly pattern = 'server-bnpl' as const;
 
   static readonly capabilities: AdapterCapabilities = {
-    pattern: 'tokenization',
+    pattern: 'bnpl',
     displayName: 'Zip',
     region: 'Global',
-    callbacks: defaultCallbacks('tokenization'),
+    callbacks: defaultCallbacks('bnpl'),
     sdk: {
       requiresClientScript: true,
       cdnUrl: ZIP_SDK_URL,
@@ -81,7 +81,7 @@ export class ZipAdapter extends TokenizationAdapterBase {
     }
   }
 
-  protected override async tokenize(): Promise<TokenizationToken> {
+  protected override async tokenize(): Promise<BnplToken> {
     if (!window.Zip) throw new Error('Zip SDK not loaded');
     const res = await fetch(`/v2/orders/${this.id}/preflight`, {
       method: 'POST',
@@ -91,13 +91,13 @@ export class ZipAdapter extends TokenizationAdapterBase {
     if (!res.ok) throw new Error(`Zip preflight failed: ${res.status}`);
     const { checkoutId } = (await res.json()) as { checkoutId: string };
 
-    return new Promise<TokenizationToken>((resolve, reject) => {
+    return new Promise<BnplToken>((resolve, reject) => {
       window.Zip!.Checkout.open({
         checkoutId,
         onComplete: (result) => {
           if (result.result === 'approved') {
             resolve({
-              kind: 'tokenization',
+              kind: 'bnpl',
               provider: 'zip',
               payload: { checkoutId: result.checkoutId, sessionId: result.sessionId },
             });

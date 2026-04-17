@@ -21,7 +21,7 @@
  */
 export type APMPattern =
   | 'redirect' // HPP redirect (iDEAL, SOFORT, Bancontact, Trustly, BLIK, ...)
-  | 'tokenization' // BNPL JS SDK returning a token (Klarna, Affirm, Afterpay, Sezzle, Zip)
+  | 'bnpl' // Buy Now Pay Later JS SDK returning a token (Klarna, Affirm, Afterpay, Sezzle, Zip)
   | 'native-wallet' // Device API (Apple Pay, Google Pay)
   | 'button-sdk' // Provider-rendered button + onApprove (PayPal, Venmo, CashApp, Amazon Pay)
   | 'qr' // QR code + polling/webhook (PIX, Alipay, WeChat Pay, UPI, PayNow, PromptPay, TWINT)
@@ -48,7 +48,7 @@ export interface CallbackContract {
   onReady: boolean;
   onError: boolean;
   onCancel: boolean;
-  onRedirect: boolean; // true for redirect/tokenization/button-sdk patterns
+  onRedirect: boolean; // true for redirect/bnpl/button-sdk patterns
   onQRScan: boolean; // true for qr pattern
   onVoucherDisplay: boolean; // true for voucher pattern
   onVoucherPolling: boolean; // true for voucher + qr patterns
@@ -253,7 +253,7 @@ export function defaultCallbacks(pattern: APMPattern): CallbackContract {
     onReady: true,
     onError: true,
     onCancel: true,
-    onRedirect: pattern === 'redirect' || pattern === 'tokenization' || pattern === 'button-sdk',
+    onRedirect: pattern === 'redirect' || pattern === 'bnpl' || pattern === 'button-sdk',
     onQRScan: pattern === 'qr',
     onVoucherDisplay: pattern === 'voucher',
     onVoucherPolling: pattern === 'voucher' || pattern === 'qr',

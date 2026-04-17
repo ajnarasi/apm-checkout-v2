@@ -31,7 +31,10 @@ import {
   APM_STATS,
   getApmMapping,
   isPproRouted,
+  SANDBOX_CREDENTIALS,
+  isSandboxApmId,
   type ApmCommerceHubMapping,
+  type SandboxApmId,
   type WebhookKind,
 } from '@commercehub/shared-types';
 import type { AppContext } from '../config.js';
@@ -226,6 +229,102 @@ export function buildHarnessRouter(ctx: AppContext): Router {
       ],
     });
   });
+
+  // ── GET /v2/harness/sandbox-defaults ───────────────────────────────
+  // Returns the committed sandbox test credentials for Klarna, Cash App,
+  // and PPRO so the harness UI can pre-fill its credential inputs. These
+  // are public sandbox/playground keys — not live merchant credentials.
+  // Gated behind harnessMode (whole router is).
+  router.get('/sandbox-defaults', (req: Request, res: Response) => {
+    const raw = String(req.query.apm ?? '').toLowerCase();
+    if (!raw) {
+      res.json({ credentials: SANDBOX_CREDENTIALS });
+      return;
+    }
+    if (!isSandboxApmId(raw)) {
+      res.status(404).json({
+        error: 'NO_SANDBOX_CREDS',
+        apm: raw,
+        supported: Object.keys(SANDBOX_CREDENTIALS),
+      });
+      return;
+    }
+    const apm = raw as SandboxApmId;
+    res.json({ apm, creds: SANDBOX_CREDENTIALS[apm] });
+  });
+
+  // ── POST /v2/harness/sandbox-call/:apm/:action ─────────────────────
+  // Forwards a harness request to the v1 test-harness child server
+  // (running on :3847) which holds the real Klarna / CashApp / PPRO
+  // integrations. Caller may supply overridden `creds` in the body to
+  // experiment with alternate sandbox keys without restarting anything;
+  // if omitted the v1 server uses its own hardcoded defaults (which we
+  // keep in sync with SANDBOX_CREDENTIALS above).
+  const SANDBOX_ACTIONS: Record<SandboxApmId, ReadonlySet<string>> = {
+    klarna: new Set([
+      'session',
+      'order',
+      'capture',
+      'refund',
+    ]),
+    cashapp: new Set(['request', 'status', 'payment']),
+    ppro: new Set(['charge', 'status']),
+  };
+
+  router.post(
+    '/sandbox-call/:apm/:action',
+    async (req: Request, res: Response) => {
+      const apmRaw = String(req.params.apm ?? '').toLowerCase();
+      const action = String(req.params.action ?? '').toLowerCase();
+      if (!isSandboxApmId(apmRaw)) {
+        res
+          .status(400)
+          .json({ error: 'UNSUPPORTED_APM', apm: apmRaw, supported: Object.keys(SANDBOX_CREDENTIALS) });
+        return;
+      }
+      const apm = apmRaw as SandboxApmId;
+      const allowed = SANDBOX_ACTIONS[apm];
+      if (!allowed.has(action)) {
+        res.status(400).json({
+          error: 'UNSUPPORTED_ACTION',
+          apm,
+          action,
+          allowed: Array.from(allowed),
+        });
+        return;
+      }
+
+      const v1 = v1Spawner.getStatus();
+      if (v1.status !== 'running' && v1.status !== 'external') {
+        res.status(503).json({
+          error: 'V1_UNAVAILABLE',
+          message: 'The v1 test-harness child server is not running.',
+          v1Status: v1.status,
+        });
+        return;
+      }
+
+      const upstream = `http://127.0.0.1:${v1.port}/api/${apm}/${action}`;
+      const body = (req.body ?? {}) as Record<string, unknown>;
+
+      try {
+        const upstreamRes = await fetch(upstream, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const text = await upstreamRes.text();
+        res.status(upstreamRes.status);
+        const contentType = upstreamRes.headers.get('content-type') ?? 'application/json';
+        res.setHeader('content-type', contentType);
+        res.send(text);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'unknown fetch error';
+        logger.warn({ apm, action, upstream, err: message }, 'harness.sandbox-call.failed');
+        res.status(502).json({ error: 'UPSTREAM_UNREACHABLE', message });
+      }
+    }
+  );
 
   // ── POST /v2/harness/reset ─────────────────────────────────────────
   router.post('/reset', (_req: Request, res: Response) => {

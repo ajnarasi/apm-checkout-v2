@@ -39,7 +39,7 @@ import {
 } from '@commercehub/shared-types';
 
 import { TokenizationAdapterBase } from '../base/tokenization-base.js';
-import type { TokenizationToken } from '../base/provider-token.js';
+import type { BnplToken } from '../base/provider-token.js';
 import { loadScript, ScriptLoadError } from '../../core/load-script.js';
 
 // ──────────────────── Provider SDK type definitions ────────────────────
@@ -86,10 +86,10 @@ export class KlarnaAdapter extends TokenizationAdapterBase {
 
   /** AdapterCapabilities declared co-located so it cannot be forgotten. */
   static readonly capabilities: AdapterCapabilities = {
-    pattern: 'tokenization',
+    pattern: 'bnpl',
     displayName: 'Klarna',
     region: 'Global',
-    callbacks: defaultCallbacks('tokenization'),
+    callbacks: defaultCallbacks('bnpl'),
     sdk: {
       requiresClientScript: true,
       cdnUrl: KLARNA_SDK_URL,
@@ -229,9 +229,9 @@ export class KlarnaAdapter extends TokenizationAdapterBase {
 
   /**
    * STEP 4 — Call Klarna.Payments.authorize() to run the user-facing flow.
-   * Returns the authorization_token wrapped in a TokenizationToken.
+   * Returns the authorization_token wrapped in a BnplToken.
    */
-  protected override async tokenize(): Promise<TokenizationToken> {
+  protected override async tokenize(): Promise<BnplToken> {
     if (typeof window === 'undefined' || !window.Klarna) {
       throw new Error('Klarna SDK not available');
     }
@@ -264,7 +264,7 @@ export class KlarnaAdapter extends TokenizationAdapterBase {
     }
 
     return {
-      kind: 'tokenization',
+      kind: 'bnpl',
       provider: 'klarna',
       payload: {
         authorizationToken: klarnaResult.authorization_token,

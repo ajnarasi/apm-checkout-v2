@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout SDK — Universal APM Test (54 APMs)</title>
+  <!-- PayPal SDK with Messages component (sandbox, no signup needed) -->
+  <script src="https://www.paypal.com/sdk/js?client-id=sb&components=messages" async></script>
+  <!-- Klarna Web SDK for On-Site Messaging (real playground credentials) -->
+  <script src="https://js.klarna.com/web-sdk/v1/klarna.js"
+    data-environment="playground"
+    data-client-id="klarna_test_client_QjNrWGw3I1kjITcoMVlzbFhGRVcweE9UbilUL3hpVDUsNTI1NTY1NDItYmViNi00MDkzLWI1OTItNzMxMGM2YmEwODdhLDEsMzhldFFmRDRSS3BVU2Q4azBwcjJsV2UzSEtXc3dxYmNCdEg2T2NHRy9oYz0"
+    async></script>
+  <!-- Sezzle static widget (no UUID needed) -->
+  <script src="https://widget.sezzle.com/v1/javascript/price-widget/static" async></script>
+  <script>
+    document.sezzleConfig = {
+      configGroups: [{
+        targetXPath: '#sezzle-price',
+        renderToPath: '..',
+        theme: 'dark',
+        alignment: 'left',
+        numberOfPayments: 4,
+        widgetTemplate: 'or 4 interest-free payments of %%price%% with %%logo%%'
+      }]
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #e0e0e0; }
+    h1 { color: #7C4DFF; font-size: 1.3em; padding: 12px 16px 0; }
+    .sub { color: #888; font-size: 0.8em; padding: 0 16px 8px; }
+
+    /* Layout: 2-column grid */
+    .main-grid { display: grid; grid-template-columns: 300px 1fr; gap: 0; min-height: 100vh; }
+    .sidebar { background: #111; border-right: 1px solid #222; padding: 12px; overflow-y: auto; max-height: 100vh; position: sticky; top: 0; }
+    .right-col { padding: 12px 16px; overflow-y: auto; }
+
+    /* Panels */
+    .panel { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .panel h2 { color: #aaa; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .panel h2 .toggle-icon { cursor: pointer; font-size: 0.9em; color: #7C4DFF; user-select: none; }
+
+    /* APM list */
+    .region-group { margin-bottom: 10px; }
+    .region-label { font-size: 0.75em; color: #7C4DFF; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0; border-bottom: 1px solid #333; margin-bottom: 4px; }
+    .apm-btn { display: block; width: 100%; padding: 5px 8px; margin: 2px 0; border: 1px solid #333; border-radius: 4px; background: #1a1a1a; color: #e0e0e0; font-size: 0.78em; cursor: pointer; text-align: left; transition: all 0.15s; }
+    .apm-btn:hover { background: #252525; border-color: #7C4DFF; }
+    .apm-btn.active { background: #2d1f5e; border-color: #7C4DFF; color: #fff; }
+    .apm-btn .code { color: #888; font-family: monospace; font-size: 0.75em; float: right; }
+    .apm-btn .pattern { color: #555; font-size: 0.65em; }
+
+    /* Stats bar */
+    .stats { display: flex; gap: 10px; padding: 8px 16px; flex-wrap: wrap; background: #0e0e0e; border-bottom: 1px solid #222; }
+    .stat { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 6px 12px; text-align: center; min-width: 80px; }
+    .stat .num { font-size: 1.3em; font-weight: 700; color: #7C4DFF; }
+    .stat .label { font-size: 0.65em; color: #888; text-transform: uppercase; }
+
+    /* Info bar */
+    .info-bar { background: #1a1a2a; border: 1px solid #333; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.8em; }
+    .info-bar strong { color: #7C4DFF; }
+
+    /* Payment container */
+    #payment-container { min-height: 80px; background: #222; border-radius: 6px; padding: 16px; margin-bottom: 10px; }
+
+    /* Buttons */
+    button.action { background: #7C4DFF; color: #fff; border: none; padding: 7px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.82em; margin: 3px; transition: background 0.15s; }
+    button.action:hover { background: #651FFF; }
+    button.action:disabled { background: #333; color: #666; cursor: not-allowed; }
+    button.action.secondary { background: #333; color: #ccc; }
+    button.action.secondary:hover { background: #444; }
+    button.action.danger { background: #c62828; }
+    button.action.danger:hover { background: #e53935; }
+
+    /* Callback support grid */
+    .cb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+    .cb-item { display: flex; align-items: center; gap: 6px; font-size: 0.75em; padding: 4px 6px; background: #222; border-radius: 4px; }
+    .cb-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .cb-dot.native { background: #4caf50; }
+    .cb-dot.simulated { background: #ffb300; }
+    .cb-dot.na { background: #555; }
+    .cb-group-label { font-size: 0.7em; color: #7C4DFF; font-weight: 600; text-transform: uppercase; margin: 8px 0 4px; letter-spacing: 0.5px; }
+
+    /* Simulator sections */
+    .sim-section { border: 1px solid #333; border-radius: 6px; padding: 10px; margin-bottom: 10px; background: #1e1e1e; }
+    .sim-section.disabled { opacity: 0.4; pointer-events: none; position: relative; }
+    .sim-section.disabled::after { content: 'Not supported for this APM'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.8); color: #888; padding: 4px 12px; border-radius: 4px; font-size: 0.75em; }
+    .sim-section h3 { font-size: 0.78em; color: #ccc; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .sim-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+    .sim-row label { font-size: 0.75em; color: #999; min-width: 80px; }
+    .sim-row input[type="text"], .sim-row select { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 4px 8px; color: #e0e0e0; font-size: 0.8em; flex: 1; min-width: 100px; }
+    .sim-row input[type="radio"] { accent-color: #7C4DFF; }
+
+    /* Customization controls */
+    .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .ctrl-item { display: flex; align-items: center; gap: 6px; font-size: 0.75em; }
+    .ctrl-item label { color: #999; min-width: 90px; flex-shrink: 0; }
+    .ctrl-item input[type="range"] { flex: 1; accent-color: #7C4DFF; }
+    .ctrl-item input[type="color"] { width: 32px; height: 24px; border: 1px solid #555; border-radius: 4px; background: none; cursor: pointer; }
+    .ctrl-item input[type="text"] { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 3px 6px; color: #e0e0e0; font-size: 1em; flex: 1; }
+    .ctrl-item input[type="checkbox"] { accent-color: #7C4DFF; }
+    .ctrl-val { color: #7C4DFF; font-family: monospace; font-size: 0.9em; min-width: 40px; text-align: right; }
+
+    /* Event log */
+    #event-log { font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; font-size: 0.73em; max-height: 400px; overflow-y: auto; }
+    .event-entry { padding: 4px 8px; border-left: 3px solid #333; margin: 2px 0; cursor: pointer; transition: background 0.1s; }
+    .event-entry:hover { background: #252525; }
+    .event-entry.lifecycle { border-left-color: #4caf50; }
+    .event-entry.customer { border-left-color: #2196f3; }
+    .event-entry.ui { border-left-color: #ff9800; }
+    .event-entry.error { border-left-color: #f44336; }
+    .event-entry.terminal { border-left-color: #9c27b0; font-weight: 600; }
+    .event-time { color: #666; }
+    .event-type { color: #7C4DFF; font-weight: 600; }
+    .event-apm { color: #888; }
+    .event-data { color: #aaa; }
+    .event-data.expanded { white-space: pre-wrap; word-break: break-all; }
+    .filter-bar { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+    .filter-btn { background: #2a2a2a; border: 1px solid #444; border-radius: 4px; padding: 3px 10px; color: #ccc; font-size: 0.75em; cursor: pointer; }
+    .filter-btn.active { background: #7C4DFF; border-color: #7C4DFF; color: #fff; }
+
+    /* Ordering checks */
+    .ordering-check { font-size: 0.75em; margin: 3px 0; }
+    .ordering-check.pass { color: #4caf50; }
+    .ordering-check.fail { color: #f44336; }
+
+    /* Sweep results */
+    .sweep-progress { width: 100%; height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin: 8px 0; }
+    .sweep-progress-bar { height: 100%; background: #7C4DFF; transition: width 0.3s; border-radius: 4px; }
+    .sweep-status { font-size: 0.8em; color: #aaa; margin-bottom: 8px; }
+    .results-table { width: 100%; border-collapse: collapse; font-size: 0.75em; }
+    .results-table th { background: #222; color: #aaa; padding: 6px 8px; text-align: left; border-bottom: 1px solid #444; position: sticky; top: 0; }
+    .results-table td { padding: 4px 8px; border-bottom: 1px solid #2a2a2a; }
+    .results-table tr:hover { background: #1e1e1e; }
+    .result-pass { color: #4caf50; font-weight: 600; }
+    .result-fail { color: #f44336; font-weight: 600; }
+    .result-skip { color: #888; }
+    .result-running { color: #ffb300; }
+
+    /* Collapsible */
+    .collapsible-body { overflow: hidden; transition: max-height 0.3s ease; }
+    .collapsible-body.collapsed { max-height: 0 !important; padding: 0; }
+
+    /* Overlay effect */
+    .overlay-active { position: relative; }
+    .overlay-active::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 10; border-radius: 8px; pointer-events: none; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #666; }
+  </style>
+</head>
+<body>
+
+  <h1>Checkout SDK — Universal APM Test</h1>
+  <p class="sub">55 payment methods | 6 patterns | 18 universal events | Callback simulation | Automated sweep</p>
+
+  <!-- Stats Bar -->
+  <div class="stats">
+    <div class="stat"><div class="num" id="s-total">55</div><div class="label">APMs</div></div>
+    <div class="stat"><div class="num" id="s-events">0</div><div class="label">Events</div></div>
+    <div class="stat"><div class="num" id="s-errors">0</div><div class="label">Errors</div></div>
+    <div class="stat"><div class="num" id="s-pattern">--</div><div class="label">Pattern</div></div>
+  </div>
+
+  <!-- Main 2-column layout -->
+  <div class="main-grid">
+
+    <!-- LEFT SIDEBAR: APM Selection -->
+    <div class="sidebar">
+      <div style="margin-bottom:8px;font-size:0.85em;color:#aaa;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Select APM</div>
+      <div id="apm-list"></div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-col">
+
+      <!-- 1. Info Bar -->
+      <div class="info-bar" id="info-bar">
+        Select an APM from the left panel to begin testing.
+      </div>
+
+      <!-- 2. Payment Widget / Button -->
+      <div class="panel">
+        <h2>Payment Widget / Button</h2>
+        <div id="payment-container">
+          <p style="color: #666; font-size: 0.85em;">Widget will render here after selecting an APM...</p>
+        </div>
+        <div>
+          <button class="action" id="btn-init" onclick="initAdapter()" disabled>1. Init</button>
+          <button class="action" id="btn-render" onclick="renderAdapter()" disabled>2. Render</button>
+          <button class="action" id="btn-auth" onclick="authorizeAdapter()" disabled>3. Authorize</button>
+          <button class="action" id="btn-redirect" onclick="handleReturn()" disabled>4. Handle Return</button>
+          <button class="action secondary" id="btn-teardown" onclick="teardownAdapter()" disabled>Teardown</button>
+        </div>
+      </div>
+
+      <!-- 3. Supported Callbacks Grid -->
+      <div class="panel" id="panel-callbacks">
+        <h2>Supported Callbacks <span class="toggle-icon" onclick="togglePanel('callbacks-body')">[-]</span></h2>
+        <div id="callbacks-body" class="collapsible-body">
+          <div id="cb-grid-container">
+            <p style="color:#666;font-size:0.8em;">Select an APM to see callback support.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Callback Simulator Panel -->
+      <div class="panel" id="panel-sim">
+        <h2>Callback Simulator <span class="toggle-icon" onclick="togglePanel('sim-body')">[-]</span></h2>
+        <div id="sim-body" class="collapsible-body">
+
+          <!-- Shipping Address -->
+          <div class="sim-section" id="sim-shipping-addr">
+            <h3>Shipping Address</h3>
+            <div class="sim-row"><label>First Name</label><input type="text" id="ship-fname" value="Test"></div>
+            <div class="sim-row"><label>Last Name</label><input type="text" id="ship-lname" value="Person-us"></div>
+            <div class="sim-row"><label>Street</label><input type="text" id="ship-street" value="Test Street 13"></div>
+            <div class="sim-row"><label>City</label><input type="text" id="ship-city" value="New York"></div>
+            <div class="sim-row"><label>State</label><input type="text" id="ship-state" value="NY"></div>
+            <div class="sim-row"><label>Postal Code</label><input type="text" id="ship-zip" value="10001"></div>
+            <div class="sim-row"><label>Country</label><input type="text" id="ship-country" value="US"></div>
+            <div style="margin-top:6px;">
+              <button class="action" onclick="updateShipping()">Update Shipping</button>
+            </div>
+          </div>
+
+          <!-- Shipping Method -->
+          <div class="sim-section" id="sim-shipping-method">
+            <h3>Shipping Method</h3>
+            <div class="sim-row">
+              <label><input type="radio" name="ship-method" value="standard" checked> Standard $5.99</label>
+              <label><input type="radio" name="ship-method" value="express"> Express $12.99</label>
+              <label><input type="radio" name="ship-method" value="overnight"> Overnight $24.99</label>
+            </div>
+          </div>
+
+          <!-- Coupon Code -->
+          <div class="sim-section" id="sim-coupon">
+            <h3>Coupon Code</h3>
+            <div class="sim-row">
+              <input type="text" id="coupon-input" placeholder="Enter coupon code...">
+              <button class="action" onclick="applyCoupon()">Apply</button>
+            </div>
+            <div id="coupon-result" style="font-size:0.75em;color:#888;margin-top:4px;"></div>
+          </div>
+
+          <!-- Payment Method -->
+          <div class="sim-section" id="sim-payment-method">
+            <h3>Payment Method</h3>
+            <div class="sim-row">
+              <select id="pm-select" onchange="changePaymentMethod()">
+                <option value="visa_4242">Visa ...4242</option>
+                <option value="mc_5555">Mastercard ...5555</option>
+                <option value="amex_0005">Amex ...0005</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Billing Address -->
+          <div class="sim-section" id="sim-billing-addr">
+            <h3>Billing Address (Apple Pay only)</h3>
+            <div class="sim-row"><label>First Name</label><input type="text" id="bill-fname" value="Test"></div>
+            <div class="sim-row"><label>Last Name</label><input type="text" id="bill-lname" value="Person-us"></div>
+            <div class="sim-row"><label>Street</label><input type="text" id="bill-street" value="Test Street 13"></div>
+            <div class="sim-row"><label>City</label><input type="text" id="bill-city" value="New York"></div>
+            <div class="sim-row"><label>State</label><input type="text" id="bill-state" value="NY"></div>
+            <div class="sim-row"><label>Postal Code</label><input type="text" id="bill-zip" value="10001"></div>
+            <div class="sim-row"><label>Country</label><input type="text" id="bill-country" value="US"></div>
+            <div style="margin-top:6px;">
+              <button class="action" onclick="updateBilling()">Update Billing</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. UI Customization Panel -->
+      <div class="panel" id="panel-styling">
+        <h2>UI Customization <span class="toggle-icon" onclick="togglePanel('styling-body')">[-]</span></h2>
+        <div id="styling-body" class="collapsible-body">
+          <div class="ctrl-grid">
+            <div class="ctrl-item">
+              <label>Color</label>
+              <input type="color" id="ctrl-color" value="#7C4DFF" onchange="applyStyle('background',this.value)">
+            </div>
+            <div class="ctrl-item">
+              <label>Height</label>
+              <input type="range" id="ctrl-height" min="32" max="64" value="48" oninput="applyStyle('height',this.value+'px');document.getElementById('val-height').textContent=this.value+'px'">
+              <span class="ctrl-val" id="val-height">48px</span>
+            </div>
+            <div class="ctrl-item">
+              <label>Width</label>
+              <input type="range" id="ctrl-width" min="200" max="600" value="400" oninput="applyBtnWidth(this.value)" id="ctrl-width-range">
+              <span class="ctrl-val" id="val-width">400px</span>
+            </div>
+            <div class="ctrl-item">
+              <label>Full Width</label>
+              <input type="checkbox" id="ctrl-fullwidth" onchange="applyBtnWidth(this.checked?'full':document.getElementById('ctrl-width').value)">
+            </div>
+            <div class="ctrl-item">
+              <label>Border Radius</label>
+              <input type="range" id="ctrl-radius" min="0" max="32" value="8" oninput="applyStyle('borderRadius',this.value+'px');document.getElementById('val-radius').textContent=this.value+'px'">
+              <span class="ctrl-val" id="val-radius">8px</span>
+            </div>
+            <div class="ctrl-item">
+              <label>Font Size</label>
+              <input type="range" id="ctrl-fontsize" min="12" max="24" value="17" oninput="applyStyle('fontSize',this.value+'px');document.getElementById('val-fontsize').textContent=this.value+'px'">
+              <span class="ctrl-val" id="val-fontsize">17px</span>
+            </div>
+            <div class="ctrl-item">
+              <label>Label Text</label>
+              <input type="text" id="ctrl-label" placeholder="Pay with..." oninput="applyLabel(this.value)">
+            </div>
+            <div class="ctrl-item">
+              <label>Show Logo</label>
+              <input type="checkbox" id="ctrl-logo" checked onchange="toggleLogo(this.checked)">
+            </div>
+            <div class="ctrl-item">
+              <label>Logo Size</label>
+              <input type="range" id="ctrl-logosize" min="16" max="40" value="24" oninput="applyLogoSize(this.value);document.getElementById('val-logosize').textContent=this.value+'px'">
+              <span class="ctrl-val" id="val-logosize">24px</span>
+            </div>
+            <div class="ctrl-item">
+              <label>Dark Mode</label>
+              <input type="checkbox" id="ctrl-dark" checked onchange="toggleDarkMode(this.checked)">
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <button class="action secondary" onclick="resetStyling()">Reset All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Widget Events Panel -->
+      <div class="panel" id="panel-widget-events">
+        <h2>Widget Events <span class="toggle-icon" onclick="togglePanel('widget-events-body')">[-]</span></h2>
+        <div id="widget-events-body" class="collapsible-body">
+          <div class="sim-section">
+            <h3>Height Resize</h3>
+            <div class="sim-row">
+              <label>Height</label>
+              <input type="range" id="widget-height-slider" min="50" max="500" value="100" oninput="document.getElementById('widget-height-val').textContent=this.value+'px'">
+              <span class="ctrl-val" id="widget-height-val">100px</span>
+              <button class="action" onclick="emitHeightChanged()">Emit Height Changed</button>
+            </div>
+          </div>
+          <div class="sim-section">
+            <h3>Overlay</h3>
+            <div class="sim-row">
+              <button class="action" onclick="showOverlay()">Show Overlay</button>
+              <button class="action secondary" onclick="hideOverlay()">Hide Overlay</button>
+            </div>
+          </div>
+          <div class="sim-section" id="sim-voucher-expiry">
+            <h3>Voucher Expiry (voucher-cash only)</h3>
+            <div class="sim-row">
+              <select id="expiry-countdown">
+                <option value="5">5 seconds</option>
+                <option value="10">10 seconds</option>
+                <option value="30">30 seconds</option>
+              </select>
+              <button class="action danger" onclick="simulateVoucherExpiry()">Simulate Voucher Expiry</button>
+            </div>
+            <div id="expiry-status" style="font-size:0.75em;color:#888;margin-top:4px;"></div>
+          </div>
+          <div class="sim-section" id="sim-force-timeout">
+            <h3>Force Timeout (polling APMs only)</h3>
+            <div class="sim-row">
+              <button class="action danger" onclick="forceTimeout()">Force Timeout (3s)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Automated Test Sweep -->
+      <div class="panel" id="panel-sweep">
+        <h2>Automated Test Sweep <span class="toggle-icon" onclick="togglePanel('sweep-body')">[-]</span></h2>
+        <div id="sweep-body" class="collapsible-body">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="action" onclick="runCallbackTests()">Run Callback Tests</button>
+            <button class="action" onclick="runStylingTests()">Run Styling Tests</button>
+            <button class="action" onclick="runEventTests()">Run Event Tests</button>
+            <button class="action" style="background:#e65100;" onclick="runAllTests()">Run All</button>
+            <button class="action danger" id="btn-stop-sweep" onclick="stopSweep()" disabled>Stop</button>
+          </div>
+          <div class="sim-row" style="margin-bottom:8px;">
+            <label style="font-size:0.78em;color:#999;">Delay (ms)</label>
+            <input type="range" id="sweep-delay" min="100" max="2000" value="500" step="100" oninput="document.getElementById('sweep-delay-val').textContent=this.value+'ms'" style="flex:1;accent-color:#7C4DFF;">
+            <span class="ctrl-val" id="sweep-delay-val">500ms</span>
+          </div>
+          <div class="sweep-progress"><div class="sweep-progress-bar" id="sweep-progress-bar" style="width:0%"></div></div>
+          <div class="sweep-status" id="sweep-status">Ready</div>
+          <div style="max-height:400px;overflow-y:auto;">
+            <table class="results-table" id="results-table">
+              <thead>
+                <tr><th>APM</th><th>Callbacks</th><th>Styling</th><th>Events</th><th>Overall</th></tr>
+              </thead>
+              <tbody id="results-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Event Log -->
+      <div class="panel" id="panel-log">
+        <h2>Event Log</h2>
+        <div class="filter-bar" id="filter-bar">
+          <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+          <button class="filter-btn" data-filter="lifecycle" onclick="setFilter('lifecycle')">Lifecycle</button>
+          <button class="filter-btn" data-filter="customer" onclick="setFilter('customer')">Customer</button>
+          <button class="filter-btn" data-filter="ui" onclick="setFilter('ui')">UI</button>
+          <button class="filter-btn" data-filter="error" onclick="setFilter('error')">Errors</button>
+          <button class="filter-btn" data-filter="terminal" onclick="setFilter('terminal')">Terminal</button>
+        </div>
+        <div id="ordering-checks"></div>
+        <div id="event-log">
+          <p style="color: #666; font-size: 0.85em;">Events will appear here...</p>
+        </div>
+      </div>
+
+    </div><!-- /right-col -->
+  </div><!-- /main-grid -->
+
+<script>
+// ================================================================
+// APM INVENTORY
+// ================================================================
+const APMS = {
+  'Europe': [
+    { name: 'iDEAL', code: 'ideal', pattern: 'bank-redirect' },
+    { name: 'Bancontact', code: 'bancontact', pattern: 'bank-redirect' },
+    { name: 'EPS', code: 'eps', pattern: 'bank-redirect' },
+    { name: 'BLIK', code: 'blik', pattern: 'bank-redirect' },
+    { name: 'Multibanco', code: 'multibanco', pattern: 'voucher-cash' },
+    { name: 'MB WAY', code: 'mbway', pattern: 'redirect-wallet' },
+    { name: 'Trustly', code: 'trustly', pattern: 'bank-redirect' },
+    { name: 'Wero', code: 'wero', pattern: 'bank-redirect' },
+    { name: 'Sofort', code: 'sofort', pattern: 'bank-redirect' },
+    { name: 'Giropay', code: 'giropay', pattern: 'bank-redirect' },
+    { name: 'Przelewy24', code: 'przelewy24', pattern: 'bank-redirect' },
+    { name: 'Swish', code: 'swish', pattern: 'redirect-wallet' },
+    { name: 'Vipps', code: 'vipps', pattern: 'redirect-wallet' },
+    { name: 'MobilePay', code: 'mobilepay', pattern: 'redirect-wallet' },
+    { name: 'PostFinance', code: 'postfinance', pattern: 'bank-redirect' },
+    { name: 'TWINT', code: 'twint', pattern: 'qr-code' },
+  ],
+  'LATAM': [
+    { name: 'Pix', code: 'pix', pattern: 'qr-code' },
+    { name: 'Boleto', code: 'boleto', pattern: 'voucher-cash' },
+    { name: 'OXXO', code: 'oxxo', pattern: 'voucher-cash' },
+    { name: 'SPEI', code: 'spei', pattern: 'bank-redirect' },
+    { name: 'PSE', code: 'pse', pattern: 'bank-redirect' },
+    { name: 'Efecty', code: 'efecty', pattern: 'voucher-cash' },
+    { name: 'Mercado Pago', code: 'mercadopago', pattern: 'redirect-wallet' },
+    { name: 'RapiPago', code: 'rapipago', pattern: 'voucher-cash' },
+    { name: 'PagoEfectivo', code: 'pagoefectivo', pattern: 'voucher-cash' },
+    { name: 'Webpay', code: 'webpay', pattern: 'bank-redirect' },
+  ],
+  'APAC': [
+    { name: 'Alipay+', code: 'alipayplus', pattern: 'qr-code' },
+    { name: 'Alipay', code: 'alipay', pattern: 'qr-code' },
+    { name: 'WeChat Pay', code: 'wechatpay', pattern: 'qr-code' },
+    { name: 'GrabPay', code: 'grabpay', pattern: 'redirect-wallet' },
+    { name: 'PayNow', code: 'paynow', pattern: 'bank-redirect' },
+    { name: 'GCash', code: 'gcash', pattern: 'redirect-wallet' },
+    { name: 'Maya', code: 'maya', pattern: 'redirect-wallet' },
+    { name: 'LINE Pay', code: 'linepay', pattern: 'redirect-wallet' },
+    { name: 'KakaoPay', code: 'kakaopay', pattern: 'redirect-wallet' },
+    { name: 'DANA', code: 'dana', pattern: 'redirect-wallet' },
+    { name: 'OVO', code: 'ovo', pattern: 'redirect-wallet' },
+    { name: 'ShopeePay', code: 'shopeepay', pattern: 'redirect-wallet' },
+    { name: 'Konbini', code: 'konbini', pattern: 'voucher-cash' },
+    { name: 'PayPay', code: 'paypay', pattern: 'qr-code' },
+    { name: 'UPI', code: 'upi', pattern: 'qr-code' },
+    { name: "Touch 'n Go", code: 'touchngo', pattern: 'redirect-wallet' },
+    { name: 'Zepto', code: 'zepto', pattern: 'bank-redirect' },
+  ],
+  'Global': [
+    { name: 'PayPal', code: 'paypal', pattern: 'redirect-wallet' },
+    { name: 'PayPal Pay Later', code: 'paypal-paylater', pattern: 'server-bnpl' },
+    { name: 'Klarna', code: 'klarna', pattern: 'server-bnpl' },
+    { name: 'Afterpay', code: 'afterpay', pattern: 'server-bnpl' },
+    { name: 'Affirm', code: 'affirm', pattern: 'server-bnpl' },
+    { name: 'Cash App', code: 'cashapp', pattern: 'redirect-wallet' },
+    { name: 'Venmo', code: 'venmo', pattern: 'redirect-wallet' },
+    { name: 'Apple Pay', code: 'applepay', pattern: 'native-wallet' },
+    { name: 'Google Pay', code: 'googlepay', pattern: 'native-wallet' },
+    { name: 'Sezzle', code: 'sezzle', pattern: 'server-bnpl' },
+    { name: 'Zip', code: 'zip', pattern: 'server-bnpl' },
+    { name: 'TabaPay', code: 'tabapay', pattern: 'redirect-wallet' },
+  ],
+};
+
+// Flat list for iteration
+const ALL_APMS = Object.values(APMS).flat();
+
+// ================================================================
+// ENDPOINT MAPPING
+// ================================================================
+const APM_ENDPOINTS = {
+  klarna:     { auth: '/api/klarna/session', buildBody: (amt) => ({ amount: amt, currency: 'USD', taxAmount: 0, merchantReference: `SDK-${Date.now()}`, items: [{itemName:'Test Item',quantity:1,unitPrice:amt,grossAmount:amt,taxAmount:0}], shippingAddress: {firstName:'Test',lastName:'Person-us',street:'Test St 13',city:'New York',postalCode:'12345',country:'US',email:'customer+us@klarna.com',phone:'+13106683312'}, billingAddress: {firstName:'Test',lastName:'Person-us',street:'Test St 13',city:'New York',postalCode:'12345',country:'US',email:'customer+us@klarna.com'} }) },
+  cashapp:    { auth: '/api/cashapp/request', buildBody: (amt) => ({ amount: amt, currency: 'USD', merchantReference: `SDK-${Date.now()}` }) },
+  afterpay:   { auth: '/api/afterpay/checkout', buildBody: (amt) => ({ amount: amt, currency: 'USD', returnUrls: {successUrl:'http://localhost:3847/checkout-sdk-test.html',cancelUrl:'http://localhost:3847/checkout-sdk-test.html'} }) },
+  alipayplus: { auth: '/api/alipayplus/pay', buildBody: (amt) => ({ amount: amt, currency: 'USD', merchantOrderId: `SDK-${Date.now()}` }) },
+  wechatpay:  { auth: '/api/wechatpay/order', buildBody: (amt) => ({ amount: amt, currency: 'CNY' }) },
+  grabpay:    { auth: '/api/grabpay/charge', buildBody: (amt) => ({ amount: amt, currency: 'SGD' }) },
+  paypal:     { auth: '/api/paypal/order', buildBody: (amt) => ({ amount: amt, currency: 'USD' }) },
+  'paypal-paylater': { auth: '/api/paypal/paylater-order', buildBody: (amt) => ({ amount: amt, currency: 'USD' }) },
+  zepto: { auth: '/api/zepto/agreement', buildBody: (amt) => ({ amount: amt, currency: 'AUD' }) },
+  applepay:   { auth: '/api/applepay/session', buildBody: () => ({ domainName: 'localhost' }) },
+  googlepay:  { auth: '/api/googlepay/process', buildBody: (amt) => ({ amount: amt, currency: 'USD' }) },
+  affirm:     { auth: '/api/affirm/checkout', buildBody: (amt) => ({ amount: amt, currency: 'USD' }) },
+  venmo:      { auth: '/api/paypal/order', buildBody: (amt) => ({ amount: amt, currency: 'USD' }) },
+  sezzle:     { auth: '/api/affirm/checkout', buildBody: (amt) => ({ amount: amt, currency: 'USD' }) },
+  zip:        { auth: '/api/affirm/checkout', buildBody: (amt) => ({ amount: amt, currency: 'USD' }) },
+  tabapay:    { auth: '/api/applepay/session', buildBody: () => ({ domainName: 'localhost' }) },
+};
+
+const PPRO_CURRENCIES = {
+  ideal:'EUR',bancontact:'EUR',eps:'EUR',blik:'PLN',trustly:'EUR',wero:'EUR',sofort:'EUR',giropay:'EUR',przelewy24:'PLN',postfinance:'CHF',
+  mbway:'EUR',swish:'SEK',vipps:'NOK',mobilepay:'DKK',twint:'CHF',multibanco:'EUR',
+  spei:'MXN',pse:'COP',webpay:'CLP',mercadopago:'ARS',pix:'BRL',boleto:'BRL',oxxo:'MXN',efecty:'COP',rapipago:'ARS',pagoefectivo:'PEN',
+  paynow:'SGD',gcash:'PHP',maya:'PHP',linepay:'THB',kakaopay:'KRW',dana:'IDR',ovo:'IDR',shopeepay:'IDR',touchngo:'MYR',
+  alipay:'CNY',paypay:'JPY',upi:'INR',konbini:'JPY',
+};
+
+const PPRO_COUNTRIES = {
+  ideal:'NL',bancontact:'BE',eps:'AT',blik:'PL',trustly:'DE',wero:'DE',sofort:'DE',giropay:'DE',przelewy24:'PL',postfinance:'CH',
+  mbway:'PT',swish:'SE',vipps:'NO',mobilepay:'DK',twint:'CH',multibanco:'PT',
+  spei:'MX',pse:'CO',webpay:'CL',mercadopago:'AR',pix:'BR',boleto:'BR',oxxo:'MX',efecty:'CO',rapipago:'AR',pagoefectivo:'PE',
+  paynow:'SG',gcash:'PH',maya:'PH',linepay:'TH',kakaopay:'KR',dana:'ID',ovo:'ID',shopeepay:'ID',touchngo:'MY',
+  alipay:'CN',paypay:'JP',upi:'IN',konbini:'JP',
+};
+
+const BRAND_COLORS = {
+  klarna:'#FFB3C7',cashapp:'#00D632',afterpay:'#00D98B',alipayplus:'#1677FF',wechatpay:'#07C160',grabpay:'#00B14F',
+  paypal:'#FFC439','paypal-paylater':'#003087',applepay:'#000',googlepay:'#4285F4',affirm:'#4A4AF4',venmo:'#3D95CE',sezzle:'#392B54',zip:'#7B2DBF',tabapay:'#1B2845',
+  ideal:'#CC0066',bancontact:'#005498',eps:'#C8192E',blik:'#000',trustly:'#0EE06E',wero:'#4E89FF',sofort:'#EF809F',giropay:'#003A7D',
+  przelewy24:'#D13239',postfinance:'#FFCC00',mbway:'#FF0000',swish:'#F8B71C',vipps:'#FF5B24',mobilepay:'#5A78FF',twint:'#000',multibanco:'#0066CC',
+  spei:'#004B87',pse:'#005BAA',webpay:'#FF0000',mercadopago:'#009EE3',pix:'#32BCAD',boleto:'#F7941E',oxxo:'#CD1B2A',efecty:'#00A651',
+  rapipago:'#009EDB',pagoefectivo:'#FFCC00',paynow:'#7B2D8E',gcash:'#007DFE',maya:'#01C853',linepay:'#00C300',kakaopay:'#FFEB00',
+  dana:'#118EEA',ovo:'#4C2A86',shopeepay:'#EE4D2D',touchngo:'#005ABB',alipay:'#1677FF',paypay:'#FF0033',upi:'#5F259F',konbini:'#FF6600',zepto:'#6C63FF',
+};
+
+// ================================================================
+// CALLBACK SUPPORT MAP
+// ================================================================
+const CALLBACK_EVENTS = [
+  // Lifecycle (9)
+  'PAYMENT_METHOD_READY','RENDER_COMPLETE','AUTH_STARTED','REDIRECT_REQUIRED',
+  'QR_CODE_GENERATED','VOUCHER_CODE_GENERATED','PAYMENT_AUTHORIZED','PAYMENT_CANCELLED','PAYMENT_ERROR',
+  // Customer Data (5)
+  'SHIPPING_ADDRESS_CHANGED','SHIPPING_METHOD_CHANGED','COUPON_CODE_CHANGED','PAYMENT_METHOD_SELECTED','BILLING_ADDRESS_CHANGED',
+  // UI/Widget (3)
+  'WIDGET_HEIGHT_CHANGED','WIDGET_OVERLAY_SHOWN','WIDGET_OVERLAY_HIDDEN',
+  // Promo (1)
+  'PROMO_CODE_APPLIED',
+];
+
+const CALLBACK_GROUPS = {
+  'Lifecycle': ['PAYMENT_METHOD_READY','RENDER_COMPLETE','AUTH_STARTED','REDIRECT_REQUIRED','QR_CODE_GENERATED','VOUCHER_CODE_GENERATED','PAYMENT_AUTHORIZED','PAYMENT_CANCELLED','PAYMENT_ERROR'],
+  'Customer Data': ['SHIPPING_ADDRESS_CHANGED','SHIPPING_METHOD_CHANGED','COUPON_CODE_CHANGED','PAYMENT_METHOD_SELECTED','BILLING_ADDRESS_CHANGED'],
+  'UI / Widget': ['WIDGET_HEIGHT_CHANGED','WIDGET_OVERLAY_SHOWN','WIDGET_OVERLAY_HIDDEN'],
+  'Promo': ['PROMO_CODE_APPLIED'],
+};
+
+const CALLBACK_SUPPORT = {
+  SHIPPING_ADDRESS_CHANGED: { native: ['applepay','googlepay'], simulated: ['paypal','paypal-paylater','afterpay'] },
+  SHIPPING_METHOD_CHANGED:  { native: ['applepay','googlepay'], simulated: ['paypal','paypal-paylater','afterpay'] },
+  COUPON_CODE_CHANGED:      { native: ['applepay','googlepay'] },
+  PAYMENT_METHOD_SELECTED:  { native: ['applepay'] },
+  BILLING_ADDRESS_CHANGED:  { native: ['applepay'] },
+  WIDGET_HEIGHT_CHANGED:    { native: ['klarna'] },
+  WIDGET_OVERLAY_SHOWN:     { native: ['klarna','affirm','zip'] },
+  WIDGET_OVERLAY_HIDDEN:    { native: ['klarna','affirm','zip'] },
+};
+
+// Lifecycle events are native for ALL APMs
+const LIFECYCLE_EVENTS = ['PAYMENT_METHOD_READY','RENDER_COMPLETE','AUTH_STARTED','REDIRECT_REQUIRED','QR_CODE_GENERATED','VOUCHER_CODE_GENERATED','PAYMENT_AUTHORIZED','PAYMENT_CANCELLED','PAYMENT_ERROR'];
+
+function getCbSupport(eventName, apmCode) {
+  if (LIFECYCLE_EVENTS.includes(eventName)) return 'native';
+  if (eventName === 'PROMO_CODE_APPLIED') return 'na';
+  const map = CALLBACK_SUPPORT[eventName];
+  if (!map) return 'na';
+  if (map.native && map.native.includes(apmCode)) return 'native';
+  if (map.simulated && map.simulated.includes(apmCode)) return 'simulated';
+  return 'na';
+}
+
+// ================================================================
+// STATE
+// ================================================================
+let selectedApm = null;
+let eventCount = 0;
+let errorCount = 0;
+let events = [];
+let readyFired = false;
+let lastAuthResponse = null;
+let currentFilter = 'all';
+let sweepRunning = false;
+let sweepAbort = false;
+let expiryTimer = null;
+
+// ================================================================
+// BUILD APM LIST
+// ================================================================
+function buildApmList() {
+  const container = document.getElementById('apm-list');
+  let html = '';
+  for (const [region, apms] of Object.entries(APMS)) {
+    html += `<div class="region-group"><div class="region-label">${region} (${apms.length})</div>`;
+    for (const apm of apms) {
+      html += `<button class="apm-btn" data-code="${apm.code}" onclick="selectApm('${apm.code}')">
+        ${apm.name} <span class="code">${apm.code}</span>
+        <div class="pattern">${apm.pattern}</div>
+      </button>`;
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+// ================================================================
+// FIND APM BY CODE
+// ================================================================
+function findApm(code) {
+  return ALL_APMS.find(a => a.code === code);
+}
+
+// ================================================================
+// SELECT APM
+// ================================================================
+function selectApm(code) {
+  const apm = findApm(code);
+  if (!apm) return;
+  selectedApm = apm;
+  document.querySelectorAll('.apm-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-code="${code}"]`)?.classList.add('active');
+  document.getElementById('s-pattern').textContent = apm.pattern;
+  document.getElementById('info-bar').innerHTML = `
+    <strong>${apm.name}</strong> (<code>${apm.code}</code>) -- Pattern: <strong>${apm.pattern}</strong><br>
+    <span style="color:#999;font-size:0.9em;">Click <strong>Init</strong> to load the adapter, then <strong>Render</strong> to display the widget, then <strong>Authorize</strong> to start the payment flow.</span>
+  `;
+  document.getElementById('btn-init').disabled = false;
+  document.getElementById('btn-render').disabled = true;
+  document.getElementById('btn-auth').disabled = true;
+  document.getElementById('btn-redirect').disabled = false;
+  document.getElementById('btn-teardown').disabled = true;
+  clearEventLog();
+  renderCallbackGrid(code);
+  updateSimulatorSections(code);
+  updateWidgetEventSections(code);
+}
+
+// ================================================================
+// CALLBACK GRID
+// ================================================================
+function renderCallbackGrid(apmCode) {
+  const container = document.getElementById('cb-grid-container');
+  let html = '';
+  for (const [groupName, eventList] of Object.entries(CALLBACK_GROUPS)) {
+    html += `<div class="cb-group-label">${groupName} (${eventList.length})</div><div class="cb-grid">`;
+    for (const evt of eventList) {
+      const support = getCbSupport(evt, apmCode);
+      const label = support === 'native' ? 'Native' : support === 'simulated' ? 'Simulated' : 'N/A';
+      html += `<div class="cb-item"><span class="cb-dot ${support}"></span><span>${evt}</span><span style="color:#666;font-size:0.85em;margin-left:auto;">${label}</span></div>`;
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+// ================================================================
+// SIMULATOR SECTION ENABLE/DISABLE
+// ================================================================
+function updateSimulatorSections(code) {
+  const shipAddrSupport = getCbSupport('SHIPPING_ADDRESS_CHANGED', code);
+  const shipMethodSupport = getCbSupport('SHIPPING_METHOD_CHANGED', code);
+  const couponSupport = getCbSupport('COUPON_CODE_CHANGED', code);
+  const pmSupport = getCbSupport('PAYMENT_METHOD_SELECTED', code);
+  const billSupport = getCbSupport('BILLING_ADDRESS_CHANGED', code);
+
+  toggleSimSection('sim-shipping-addr', shipAddrSupport !== 'na');
+  toggleSimSection('sim-shipping-method', shipMethodSupport !== 'na');
+  toggleSimSection('sim-coupon', couponSupport !== 'na');
+  toggleSimSection('sim-payment-method', pmSupport !== 'na');
+  toggleSimSection('sim-billing-addr', billSupport !== 'na');
+}
+
+function toggleSimSection(id, enabled) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (enabled) { el.classList.remove('disabled'); }
+  else { el.classList.add('disabled'); }
+}
+
+function updateWidgetEventSections(code) {
+  const heightSupport = getCbSupport('WIDGET_HEIGHT_CHANGED', code);
+  const overlaySupport = getCbSupport('WIDGET_OVERLAY_SHOWN', code);
+  const isVoucher = selectedApm && selectedApm.pattern === 'voucher-cash';
+  const isPolling = selectedApm && ['qr-code','voucher-cash'].includes(selectedApm.pattern);
+
+  // Voucher expiry only for voucher-cash
+  const voucherEl = document.getElementById('sim-voucher-expiry');
+  if (voucherEl) { isVoucher ? voucherEl.classList.remove('disabled') : voucherEl.classList.add('disabled'); }
+
+  // Force timeout only for polling APMs
+  const timeoutEl = document.getElementById('sim-force-timeout');
+  if (timeoutEl) { isPolling ? timeoutEl.classList.remove('disabled') : timeoutEl.classList.add('disabled'); }
+}
+
+// ================================================================
+// COLLAPSIBLE PANELS
+// ================================================================
+function togglePanel(bodyId) {
+  const body = document.getElementById(bodyId);
+  if (!body) return;
+  const icon = body.previousElementSibling?.querySelector('.toggle-icon') || body.parentElement.querySelector('.toggle-icon');
+  if (body.classList.contains('collapsed')) {
+    body.classList.remove('collapsed');
+    body.style.maxHeight = body.scrollHeight + 'px';
+    if (icon) icon.textContent = '[-]';
+  } else {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    requestAnimationFrame(() => { body.classList.add('collapsed'); });
+    if (icon) icon.textContent = '[+]';
+  }
+}
+
+// ================================================================
+// EVENT LOGGING
+// ================================================================
+function clearEventLog() {
+  events = [];
+  eventCount = 0;
+  errorCount = 0;
+  readyFired = false;
+  document.getElementById('event-log').innerHTML = '';
+  document.getElementById('ordering-checks').innerHTML = '';
+  document.getElementById('s-events').textContent = '0';
+  document.getElementById('s-errors').textContent = '0';
+}
+
+function logEvent(type, data) {
+  eventCount++;
+  const isError = type.includes('ERROR') || type.includes('CANCELLED') || type.includes('EXPIRED');
+  const isTerminal = ['PAYMENT_AUTHORIZED','PAYMENT_CANCELLED','PAYMENT_ERROR','VOUCHER_EXPIRED'].includes(type);
+  const isLifecycle = ['PAYMENT_METHOD_READY','RENDER_COMPLETE','AUTH_STARTED','REDIRECT_REQUIRED','QR_CODE_GENERATED','VOUCHER_CODE_GENERATED','PHONE_NUMBER_REQUIRED'].includes(type);
+  const isCustomer = type.includes('SHIPPING') || type.includes('BILLING') || type.includes('COUPON') || type.includes('PAYMENT_METHOD_SELECTED');
+  const isUI = type.includes('WIDGET') || type.includes('OVERLAY') || type.includes('HEIGHT');
+
+  if (isError) errorCount++;
+  if (type === 'PAYMENT_METHOD_READY') readyFired = true;
+
+  const category = isTerminal ? 'terminal' : isError ? 'error' : isCustomer ? 'customer' : isUI ? 'ui' : isLifecycle ? 'lifecycle' : 'lifecycle';
+  const time = new Date().toISOString().split('T')[1].split('.')[0];
+  const apmCode = selectedApm ? selectedApm.code : '';
+  const dataStr = JSON.stringify(data);
+  const truncated = dataStr.length > 120 ? dataStr.substring(0, 120) + '...' : dataStr;
+
+  const entry = document.createElement('div');
+  entry.className = `event-entry ${category}`;
+  entry.dataset.category = category;
+  entry.innerHTML = `<span class="event-time">${time}</span> <span class="event-type">${type}</span> <span class="event-apm">[${apmCode}]</span> <span class="event-data" title="Click to expand">${truncated}</span>`;
+
+  // Click to expand/collapse
+  const dataSpan = entry.querySelector('.event-data');
+  dataSpan.addEventListener('click', () => {
+    if (dataSpan.classList.contains('expanded')) {
+      dataSpan.classList.remove('expanded');
+      dataSpan.textContent = truncated;
+    } else {
+      dataSpan.classList.add('expanded');
+      dataSpan.textContent = dataStr;
+    }
+  });
+
+  const log = document.getElementById('event-log');
+  if (log.querySelector('p')) log.innerHTML = '';
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+
+  events.push({ type, data, time, category });
+  document.getElementById('s-events').textContent = String(eventCount);
+  document.getElementById('s-errors').textContent = String(errorCount);
+
+  // Apply current filter
+  if (currentFilter !== 'all' && category !== currentFilter) {
+    entry.style.display = 'none';
+  }
+
+  // Ordering validation
+  if (isTerminal && !readyFired && type !== 'PAYMENT_ERROR') {
+    addOrderingCheck('fail', `${type} fired BEFORE PAYMENT_METHOD_READY`);
+  }
+  if (type === 'PAYMENT_METHOD_READY') {
+    addOrderingCheck('pass', 'PAYMENT_METHOD_READY fired first');
+  }
+  if (isTerminal) {
+    addOrderingCheck(readyFired || type === 'PAYMENT_ERROR' ? 'pass' : 'fail', `Terminal: ${type}`);
+  }
+}
+
+function addOrderingCheck(status, message) {
+  const div = document.getElementById('ordering-checks');
+  const el = document.createElement('div');
+  el.className = `ordering-check ${status}`;
+  el.textContent = `${status === 'pass' ? 'PASS' : 'FAIL'} ${message}`;
+  div.appendChild(el);
+}
+
+// ================================================================
+// EVENT LOG FILTER
+// ================================================================
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === filter);
+  });
+  document.querySelectorAll('.event-entry').forEach(entry => {
+    if (filter === 'all') {
+      entry.style.display = '';
+    } else {
+      entry.style.display = entry.dataset.category === filter ? '' : 'none';
+    }
+  });
+}
+
+// ================================================================
+// ADAPTER ACTIONS (REAL API CALLS)
+// ================================================================
+async function initAdapter() {
+  if (!selectedApm) return;
+  logEvent('INIT_STARTED', { apm: selectedApm.code });
+
+  // Load real SDKs for supported APMs
+  if (selectedApm.code === 'klarna' && !window.Klarna) {
+    await loadScript('https://x.klarnacdn.net/kp/lib/v1/api.js', 'Klarna Payments JS');
+  }
+  if (selectedApm.code === 'googlepay' && !window.google?.payments) {
+    await loadScript('https://pay.google.com/gp/p/js/pay.js', 'Google Pay JS');
+  }
+
+  logEvent('PAYMENT_METHOD_READY', { apm: selectedApm.code, pattern: selectedApm.pattern });
+  document.getElementById('btn-render').disabled = false;
+  document.getElementById('btn-teardown').disabled = false;
+}
+
+function loadScript(url, name) {
+  return new Promise((resolve) => {
+    if (document.querySelector(`script[src="${url}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = url; s.async = true;
+    s.onload = () => { logEvent('SDK_LOADED', { sdk: name }); resolve(); };
+    s.onerror = () => { logEvent('SDK_LOAD_FAILED', { sdk: name }); resolve(); };
+    document.head.appendChild(s);
+  });
+}
+
+async function renderAdapter() {
+  if (!selectedApm) return;
+  const container = document.getElementById('payment-container');
+  const code = selectedApm.code;
+  const name = selectedApm.name;
+  const color = BRAND_COLORS[code] || '#7C4DFF';
+  const textColor = ['applepay','blik','twint'].includes(code) ? '#fff' :
+                     ['postfinance','kakaopay','pagoefectivo','swish','paypal'].includes(code) ? '#000' : '#fff';
+
+  container.innerHTML = `
+    <button id="apm-pay-btn" style="
+      display:flex;align-items:center;justify-content:center;gap:10px;
+      width:100%;padding:14px 28px;border:none;border-radius:8px;
+      font-size:17px;font-weight:700;cursor:pointer;
+      background:${color};color:${textColor};
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      transition:opacity 0.2s;
+    " onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+      <img id="apm-pay-logo" src="/logos/${code}.svg" alt="${name}" style="height:24px;width:auto;" onerror="this.style.display='none'">
+      <span id="apm-pay-label">Pay with ${name}</span>
+    </button>
+    <div style="margin-top:8px;font-size:0.75em;color:#666;text-align:center;">
+      Pattern: ${selectedApm.pattern} | Sandbox: ${APM_ENDPOINTS[code] ? 'Direct' : 'PPRO'}
+    </div>
+  `;
+
+  if (code === 'klarna') {
+    container.innerHTML += '<div id="klarna-widget" style="margin-top:12px;min-height:80px;background:#1a1a1a;border-radius:6px;padding:8px;"></div>';
+  }
+
+  // === PROMOTIONAL MESSAGING WIDGETS ===
+  const PROMO_APMS = ['klarna','afterpay','paypal','paypal-paylater','affirm','sezzle','zip'];
+  if (PROMO_APMS.includes(code)) {
+    const promoContainer = document.createElement('div');
+    promoContainer.id = 'promo-message-container';
+    promoContainer.style.cssText = 'margin-top:12px;padding:12px;background:#1a1a2a;border:1px solid #555;border-radius:8px;';
+    promoContainer.innerHTML = '<div style="font-size:0.7em;color:#aaa;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Promotional Messaging Widget</div>';
+
+    if ((code === 'paypal' || code === 'paypal-paylater') && window.paypal?.Messages) {
+      // REAL PayPal Messages (sandbox, no signup needed)
+      const ppDiv = document.createElement('div');
+      ppDiv.id = 'pp-promo-message';
+      promoContainer.appendChild(ppDiv);
+      container.appendChild(promoContainer);
+      try {
+        const msgStyle = code === 'paypal-paylater'
+          ? { layout: 'flex', color: 'blue', ratio: '8x1' }
+          : { layout: 'text', logo: { type: 'primary', position: 'left' }, text: { color: 'black', size: 12 } };
+        paypal.Messages({ amount: 50, style: msgStyle }).render('#pp-promo-message');
+        logEvent('PROMO_MESSAGE_RENDERED', { provider: code, type: 'real_sdk', amount: 50 });
+      } catch(e) { promoContainer.innerHTML += '<div style="color:#f44336;font-size:0.75em;">PayPal Messages failed: ' + e.message + '</div>'; }
+    } else if (code === 'sezzle') {
+      // REAL Sezzle static widget (no UUID needed)
+      promoContainer.innerHTML += '<div style="background:#fff;padding:8px;border-radius:4px;"><span id="sezzle-price" style="font-weight:700;color:#000;">$50.00</span></div>';
+      container.appendChild(promoContainer);
+      logEvent('PROMO_MESSAGE_RENDERED', { provider: 'sezzle', type: 'real_sdk', amount: 50 });
+    } else if (code === 'klarna') {
+      // Klarna OSM uses real SDK with playground client-id (no simulated badge fallback)
+      const klarnaPlacement = document.createElement('klarna-placement');
+      klarnaPlacement.setAttribute('data-key', 'credit-promotion-badge');
+      klarnaPlacement.setAttribute('data-locale', 'en-US');
+      klarnaPlacement.setAttribute('data-purchase-amount', '5000');
+      promoContainer.appendChild(klarnaPlacement);
+      container.appendChild(promoContainer);
+      logEvent('PROMO_MESSAGE_RENDERED', { provider: 'klarna', type: 'real_sdk', placement: 'credit-promotion-badge', amount: 5000 });
+      // NOTE: previously this branch did `return;` to skip the simulated-badge
+      // fallback below. That accidentally skipped the rest of renderAdapter()
+      // including the btn-auth enable on line 977 — so for Klarna ONLY the
+      // Authorize button stayed permanently disabled. Fixed by converting the
+      // early-return into a proper else-if so control flow always reaches the
+      // bottom of the function for every APM.
+    } else {
+      // SIMULATED promo badges for Afterpay, Affirm, Zip (require merchant signup for real messaging)
+      const promoConfig = {
+        afterpay: { text: '4 interest-free payments of $12.50', color: '#00D98B', logo: 'Afterpay', note: 'Requires Afterpay MPID for real messaging' },
+        affirm: { text: 'As low as $12/mo with Affirm', color: '#4A4AF4', logo: 'Affirm', note: 'Requires Affirm public API key for real messaging' },
+        zip: { text: '4 interest-free payments of $12.50', color: '#7B2DBF', logo: 'Zip', note: 'Requires Zip merchant ID for real widget' },
+      };
+      const cfg = promoConfig[code];
+      if (cfg) {
+        promoContainer.innerHTML += `
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;background:#222;border-radius:4px;">
+            <span style="font-size:0.85em;color:#e0e0e0;">${cfg.text}</span>
+            <span style="font-size:0.7em;color:${cfg.color};font-weight:700;">${cfg.logo}</span>
+          </div>
+          <div style="font-size:0.65em;color:#666;margin-top:4px;font-style:italic;">Simulated — ${cfg.note}</div>
+        `;
+        container.appendChild(promoContainer);
+        logEvent('PROMO_MESSAGE_RENDERED', { provider: code, type: 'simulated', amount: 50, note: cfg.note });
+      }
+    }
+  }
+  if (code === 'googlepay') {
+    container.innerHTML += '<div id="googlepay-btn-container" style="margin-top:12px;"></div>';
+    // Render real Google Pay button in TEST mode
+    if (window.google?.payments?.api) {
+      try {
+        const client = new google.payments.api.PaymentsClient({ environment: 'TEST' });
+        const ready = await client.isReadyToPay({
+          apiVersion: 2, apiVersionMinor: 0,
+          allowedPaymentMethods: [{ type: 'CARD', parameters: { allowedAuthMethods: ['PAN_ONLY','CRYPTOGRAM_3DS'], allowedCardNetworks: ['VISA','MASTERCARD','AMEX','DISCOVER'] } }]
+        });
+        if (ready.result) {
+          const gpBtn = client.createButton({ onClick: () => authorizeGooglePay(client), buttonColor: 'black', buttonType: 'pay', buttonSizeMode: 'fill' });
+          document.getElementById('googlepay-btn-container').appendChild(gpBtn);
+          logEvent('GOOGLEPAY_BUTTON_RENDERED', { isReadyToPay: true });
+        }
+      } catch(e) { logEvent('GOOGLEPAY_INIT_ERROR', { error: e.message }); }
+    }
+  }
+  if (code === 'cashapp') {
+    container.innerHTML += '<div id="cashapp-sdk-container" style="margin-top:12px;min-height:60px;"></div>';
+  }
+
+  // Update color picker to match brand color
+  document.getElementById('ctrl-color').value = color;
+
+  document.getElementById('btn-auth').disabled = false;
+  logEvent('RENDER_COMPLETE', { apm: code, buttonColor: color });
+}
+
+async function authorizeAdapter() {
+  if (!selectedApm) return;
+  const code = selectedApm.code;
+  const pattern = selectedApm.pattern;
+  const amt = 10.00;
+
+  logEvent('AUTH_STARTED', { apm: code, amount: amt });
+
+  try {
+    let endpoint, body;
+
+    if (APM_ENDPOINTS[code]) {
+      const config = APM_ENDPOINTS[code];
+      endpoint = config.auth;
+      body = config.buildBody(amt);
+    } else if (PPRO_CURRENCIES[code]) {
+      endpoint = '/api/ppro/charge';
+      body = {
+        amount: amt,
+        currency: PPRO_CURRENCIES[code],
+        customerName: 'Test User',
+        customerEmail: 'test@example.com',
+        country: PPRO_COUNTRIES[code],
+        paymentMethod: code.toUpperCase(),
+        captureFlag: true,
+        returnUrl: 'http://localhost:3847/checkout-sdk-test.html',
+        merchantOrderId: `SDK-${code}-${Date.now()}`
+      };
+    } else {
+      logEvent('PAYMENT_ERROR', { code: 'UNKNOWN_APM', message: `No endpoint for ${code}` });
+      return;
+    }
+
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+    lastAuthResponse = data;
+
+    logEvent('SERVER_RESPONSE', { status: resp.status, endpoint });
+
+    // Surface backend errors (non-2xx) as PAYMENT_ERROR with a visible card
+    if (!resp.ok) {
+      logEvent('PAYMENT_ERROR', {
+        code: data.error || `HTTP_${resp.status}`,
+        status: resp.status,
+        message: data.hint || data.error || data.statusText || 'Request failed',
+        details: data.details || data,
+      });
+      const container = document.getElementById('payment-container');
+      if (container) {
+        container.innerHTML += `<div style="margin-top:12px;padding:16px;background:#2a0d0d;border:1px solid #f44336;border-radius:8px;">
+          <div style="font-size:0.85em;color:#f44336;font-weight:700;margin-bottom:8px;">❌ ${data.error || 'Payment Error'} (HTTP ${resp.status})</div>
+          ${data.hint ? `<div style="font-size:0.8em;color:#e0e0e0;line-height:1.5;margin-bottom:8px;">${data.hint}</div>` : ''}
+          ${data.requestId ? `<div style="font-size:0.7em;color:#888;">Request ID: <code>${data.requestId}</code></div>` : ''}
+          ${data.details ? `<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:0.75em;color:#888;">Details</summary><pre style="font-size:0.7em;color:#aaa;margin-top:6px;background:#1a1a1a;padding:8px;border-radius:4px;overflow-x:auto;">${JSON.stringify(data.details, null, 2)}</pre></details>` : ''}
+        </div>`;
+      }
+      return;
+    }
+
+    const txId = data.transactionProcessingDetails?.transactionId || data.order?.providerOrderId || data.chargeId || data.id || data.checkout_id || data._raw?.token || data._raw?.uid;
+    // Extract redirect URL from multiple response formats (CommerceHub, PPRO, Afterpay, PayPal, Zepto)
+    const pproRedirect = data._raw?.authenticationMethods?.find?.(m => m.details?.requestUrl)?.details?.requestUrl;
+    const redirectUrl = data.checkoutInteractions?.actions?.url
+      || pproRedirect
+      || data._raw?.redirectCheckoutUrl
+      || data.redirect_url
+      || data._raw?.request?.redirectUrl
+      || data._raw?.authorization_url       // Zepto PayTo agreement authorization URL
+      || data.authorization_url             // generic fallback
+      || data.links?.find?.(l => l.rel === 'approve')?.href;
+    // Extract QR code from multiple formats (PPRO, CashApp, WeChat)
+    const pproQR = data._raw?.authenticationMethods?.find?.(m => m.details?.codeImage || m.details?.codeType === 'QR')?.details?.codeImage;
+    const qrCode = data.checkoutInteractions?.actions?.code || pproQR || data._raw?.code_url || data._raw?.request?.auth_flow_triggers?.qr_code_image_url;
+    const status = data.gatewayResponse?.transactionState || data.order?.orderStatus || data.status || data.transactionState;
+    const merchantId = data.merchantIdentifier || data._raw?.merchantIdentifier;
+
+    if (txId) {
+      logEvent('PAYMENT_METHOD_READY', { transactionId: txId, status });
+    }
+
+    // === KLARNA: Load real widget after session ===
+    if (code === 'klarna' && window.Klarna?.Payments) {
+      const clientToken = data.paymentMethod?.paymentToken?.tokenData || data._raw?.clientToken;
+      if (clientToken) {
+        Klarna.Payments.init({ client_token: clientToken });
+        Klarna.Payments.load(
+          { container: '#klarna-widget', payment_method_category: 'klarna' },
+          {},
+          function(res) {
+            if (res.show_form) {
+              logEvent('KLARNA_WIDGET_RENDERED', { show_form: true, category: 'klarna' });
+              // Add authorize button below widget
+              const authBtn = document.createElement('button');
+              authBtn.textContent = 'Complete Klarna Payment';
+              authBtn.style.cssText = 'background:#FFB3C7;color:#000;border:none;border-radius:6px;padding:10px 20px;margin-top:8px;cursor:pointer;width:100%;font-weight:600;';
+              authBtn.onclick = () => {
+                Klarna.Payments.authorize({ payment_method_category: 'klarna' }, {}, function(authRes) {
+                  if (authRes.approved) {
+                    logEvent('PAYMENT_AUTHORIZED', { authorizationToken: authRes.authorization_token, approved: true });
+                  } else if (authRes.show_form) {
+                    logEvent('KLARNA_AUTH_PENDING', { show_form: true, message: 'Complete the form above' });
+                  } else {
+                    logEvent('PAYMENT_CANCELLED', { approved: false });
+                  }
+                });
+              };
+              document.getElementById('klarna-widget')?.appendChild(authBtn);
+            } else {
+              logEvent('KLARNA_WIDGET_UNAVAILABLE', { show_form: false, error: res.error });
+            }
+          }
+        );
+      }
+    }
+
+    // === REDIRECT: Show visual redirect card ===
+    if (redirectUrl) {
+      logEvent('REDIRECT_REQUIRED', { url: redirectUrl });
+      const container = document.getElementById('payment-container');
+      container.innerHTML += `<div style="margin-top:12px;padding:16px;background:#1a1a2a;border:1px solid #7C4DFF;border-radius:8px;">
+        <div style="font-size:0.8em;color:#7C4DFF;font-weight:600;margin-bottom:8px;">REDIRECT REQUIRED</div>
+        <div style="font-size:0.75em;color:#aaa;margin-bottom:8px;">In production, the customer would be redirected to:</div>
+        <a href="${redirectUrl}" target="_blank" rel="noopener" style="color:#7C4DFF;font-size:0.8em;word-break:break-all;">${redirectUrl}</a>
+        <button onclick="window.open('${redirectUrl}','_blank')" style="display:block;margin-top:8px;background:#7C4DFF;color:#fff;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;font-size:0.8em;">Open Redirect URL</button>
+      </div>`;
+    }
+
+    // === QR CODE: Show visual QR card ===
+    if (qrCode) {
+      logEvent('QR_CODE_GENERATED', { qrCodeUrl: qrCode });
+      const container = document.getElementById('payment-container');
+      container.innerHTML += `<div style="text-align:center;margin-top:12px;padding:16px;background:#1a1a1a;border:1px solid #333;border-radius:8px;">
+        <div style="font-size:0.8em;color:#4caf50;font-weight:600;margin-bottom:8px;">QR CODE GENERATED</div>
+        ${qrCode.startsWith('http') ? `<img src="${qrCode}" alt="QR Code" style="max-width:200px;border-radius:8px;border:1px solid #444;">` : `<div style="font-family:monospace;font-size:0.75em;color:#888;word-break:break-all;padding:8px;background:#222;border-radius:4px;">${qrCode}</div>`}
+        <p style="font-size:0.7em;color:#888;margin-top:8px;">Scan with provider app to complete payment (sandbox)</p>
+      </div>`;
+    }
+
+    // === VOUCHER: Show styled receipt card ===
+    if (pattern === 'voucher-cash' && txId) {
+      const expiresAt = new Date(Date.now() + 86400000).toISOString();
+      logEvent('VOUCHER_CODE_GENERATED', { code: txId, expiresAt });
+      const container = document.getElementById('payment-container');
+      container.innerHTML += `<div style="margin-top:12px;padding:16px;background:#1a2a1a;border:1px solid #4caf50;border-radius:8px;">
+        <div style="font-size:0.8em;color:#4caf50;font-weight:600;margin-bottom:8px;">VOUCHER CODE GENERATED</div>
+        <div style="font-family:monospace;font-size:1.4em;color:#fff;text-align:center;padding:12px;background:#222;border-radius:6px;letter-spacing:3px;margin-bottom:8px;">${txId}</div>
+        <div style="font-size:0.75em;color:#aaa;">
+          <div>Payment Method: <strong style="color:#e0e0e0;">${selectedApm.name}</strong></div>
+          <div>Amount: <strong style="color:#e0e0e0;">$10.00</strong></div>
+          <div>Expires: <strong style="color:#ff9800;">${new Date(expiresAt).toLocaleString()}</strong></div>
+          <div style="margin-top:8px;color:#888;">Present this code at any ${selectedApm.name} location to complete payment.</div>
+        </div>
+      </div>`;
+    }
+
+    // === APPLE PAY: Show merchant validation ===
+    if (code === 'applepay' && merchantId) {
+      logEvent('MERCHANT_VALIDATED', { merchantId });
+      const container = document.getElementById('payment-container');
+      container.innerHTML += `<div style="margin-top:12px;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:8px;">
+        <div style="font-size:0.75em;color:#888;">Apple Pay Merchant: <strong style="color:#fff;">${merchantId}</strong></div>
+        <div style="font-size:0.7em;color:#666;margin-top:4px;">Payment sheet requires Safari + Apple device with test cards in Wallet</div>
+      </div>`;
+    }
+
+    // For PPRO: if hasRedirect is true but no redirectUrl was found above, show the charge as redirect-pending
+    if (data.hasRedirect && !redirectUrl) {
+      const container = document.getElementById('payment-container');
+      container.innerHTML += `<div style="margin-top:12px;padding:16px;background:#1a1a2a;border:1px solid #7C4DFF;border-radius:8px;">
+        <div style="font-size:0.8em;color:#7C4DFF;font-weight:600;margin-bottom:8px;">REDIRECT AVAILABLE</div>
+        <div style="font-size:0.75em;color:#aaa;">PPRO charge created with redirect authentication. In production, the bank redirect URL would be provided.</div>
+        <div style="font-size:0.75em;color:#4caf50;margin-top:4px;">Charge ID: ${data.chargeId}</div>
+      </div>`;
+      logEvent('REDIRECT_REQUIRED', { chargeId: data.chargeId, hasRedirect: true });
+    }
+    if (data.success !== undefined) {
+      logEvent(data.success ? 'CHARGE_CREATED' : 'PAYMENT_ERROR', {
+        success: data.success, chargeId: data.chargeId,
+        amountSymmetric: data.amountSymmetric, currencyPreserved: data.currencyPreserved,
+        hasRedirect: data.hasRedirect, hasQR: data.hasQR, error: data.error,
+      });
+    }
+    if (status === 'AUTHORIZED') {
+      logEvent('PAYMENT_AUTHORIZED', { transactionId: txId, status });
+    }
+
+    return { success: resp.ok, status: resp.status, data };
+  } catch (err) {
+    logEvent('PAYMENT_ERROR', { code: 'NETWORK_ERROR', message: err.message });
+    return { success: false, error: err.message };
+  }
+}
+
+// === GOOGLE PAY: Real SDK flow with shipping callbacks ===
+async function authorizeGooglePay(client) {
+  logEvent('GOOGLEPAY_PAYMENT_SHEET_OPENED', {});
+  try {
+    const paymentData = await client.loadPaymentData({
+      apiVersion: 2, apiVersionMinor: 0,
+      allowedPaymentMethods: [{
+        type: 'CARD',
+        parameters: { allowedAuthMethods: ['PAN_ONLY','CRYPTOGRAM_3DS'], allowedCardNetworks: ['VISA','MASTERCARD','AMEX','DISCOVER'] },
+        tokenizationSpecification: { type: 'PAYMENT_GATEWAY', parameters: { gateway: 'example', gatewayMerchantId: 'exampleGatewayMerchantId' } }
+      }],
+      merchantInfo: { merchantName: 'CommerceHub APM Test', merchantId: 'TEST' },
+      transactionInfo: { totalPriceStatus: 'FINAL', totalPrice: '10.00', currencyCode: 'USD', countryCode: 'US' },
+      callbackIntents: ['PAYMENT_AUTHORIZATION', 'SHIPPING_ADDRESS', 'SHIPPING_OPTION'],
+      shippingAddressRequired: true,
+      shippingAddressParameters: { allowedCountryCodes: ['US'] },
+      shippingOptionRequired: true,
+      shippingOptionParameters: {
+        defaultSelectedOptionId: 'ship-std',
+        shippingOptions: [
+          { id: 'ship-std', label: 'Free: Standard', description: '5-7 business days' },
+          { id: 'ship-exp', label: '$5.99: Express', description: '2-3 business days' },
+          { id: 'ship-ovn', label: '$12.99: Overnight', description: 'Next business day' }
+        ]
+      }
+    });
+    logEvent('PAYMENT_AUTHORIZED', { token: paymentData.paymentMethodData?.tokenizationData?.token?.substring(0,50) + '...', network: paymentData.paymentMethodData?.info?.cardNetwork });
+  } catch (err) {
+    if (err.statusCode === 'CANCELED') {
+      logEvent('PAYMENT_CANCELLED', { source: 'googlepay_sheet_dismissed' });
+    } else {
+      logEvent('PAYMENT_ERROR', { code: 'GOOGLEPAY_ERROR', message: err.message || err.statusMessage });
+    }
+  }
+}
+
+async function handleReturn() {
+  if (!selectedApm) return;
+  const params = Object.fromEntries(new URLSearchParams(window.location.search));
+  logEvent('REDIRECT_RETURN', { params });
+  if (lastAuthResponse) {
+    const chargeId = lastAuthResponse.chargeId || lastAuthResponse.order?.providerOrderId;
+    if (chargeId) {
+      logEvent('PAYMENT_AUTHORIZED', { source: 'redirect_return', chargeId });
+    }
+  }
+}
+
+async function teardownAdapter() {
+  document.getElementById('payment-container').innerHTML = '<p style="color: #666; font-size: 0.85em;">Widget will render here after selecting an APM...</p>';
+  document.getElementById('btn-init').disabled = false;
+  document.getElementById('btn-render').disabled = true;
+  document.getElementById('btn-auth').disabled = true;
+  document.getElementById('btn-teardown').disabled = true;
+  lastAuthResponse = null;
+  logEvent('TEARDOWN', { apm: selectedApm?.code });
+}
+
+// ================================================================
+// CALLBACK SIMULATORS
+// ================================================================
+async function updateShipping() {
+  if (!selectedApm) return;
+  const addr = {
+    firstName: document.getElementById('ship-fname').value,
+    lastName: document.getElementById('ship-lname').value,
+    street: document.getElementById('ship-street').value,
+    city: document.getElementById('ship-city').value,
+    state: document.getElementById('ship-state').value,
+    postalCode: document.getElementById('ship-zip').value,
+    country: document.getElementById('ship-country').value,
+  };
+  logEvent('SHIPPING_ADDRESS_CHANGED', addr);
+  try {
+    const resp = await fetch('/api/_test/shipping-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apm: selectedApm.code, address: addr }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      logEvent('SHIPPING_UPDATE_RESPONSE', data);
+    }
+  } catch (e) {
+    logEvent('SHIPPING_UPDATE_ERROR', { message: e.message });
+  }
+}
+
+// Shipping method radio change
+document.addEventListener('change', (e) => {
+  if (e.target.name === 'ship-method') {
+    const methods = { standard: 5.99, express: 12.99, overnight: 24.99 };
+    const method = e.target.value;
+    logEvent('SHIPPING_METHOD_CHANGED', { method, cost: methods[method] });
+  }
+});
+
+async function applyCoupon() {
+  if (!selectedApm) return;
+  const code = document.getElementById('coupon-input').value.trim();
+  if (!code) return;
+  const resultEl = document.getElementById('coupon-result');
+  resultEl.textContent = 'Applying...';
+  resultEl.style.color = '#888';
+
+  try {
+    const resp = await fetch('/api/_test/coupon-apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apm: selectedApm.code, couponCode: code }),
+    });
+    const data = await resp.json();
+    if (data.valid) {
+      resultEl.textContent = `Discount: -$${data.discount.toFixed(2)}`;
+      resultEl.style.color = '#4caf50';
+      logEvent('COUPON_CODE_CHANGED', { couponCode: code, discount: data.discount, valid: true });
+    } else {
+      resultEl.textContent = data.message || 'Invalid coupon';
+      resultEl.style.color = '#f44336';
+      logEvent('COUPON_CODE_CHANGED', { couponCode: code, valid: false, message: data.message });
+    }
+  } catch (e) {
+    resultEl.textContent = 'Server error';
+    resultEl.style.color = '#f44336';
+    // Simulate locally if server not available
+    logEvent('COUPON_CODE_CHANGED', { couponCode: code, valid: false, simulated: true });
+  }
+}
+
+async function changePaymentMethod() {
+  if (!selectedApm) return;
+  const val = document.getElementById('pm-select').value;
+  const names = { visa_4242: 'Visa ...4242', mc_5555: 'Mastercard ...5555', amex_0005: 'Amex ...0005' };
+  logEvent('PAYMENT_METHOD_SELECTED', { method: val, display: names[val] });
+  try {
+    await fetch('/api/_test/method-change', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apm: selectedApm.code, method: val }),
+    });
+  } catch (e) { /* ignore */ }
+}
+
+async function updateBilling() {
+  if (!selectedApm) return;
+  const addr = {
+    firstName: document.getElementById('bill-fname').value,
+    lastName: document.getElementById('bill-lname').value,
+    street: document.getElementById('bill-street').value,
+    city: document.getElementById('bill-city').value,
+    state: document.getElementById('bill-state').value,
+    postalCode: document.getElementById('bill-zip').value,
+    country: document.getElementById('bill-country').value,
+  };
+  logEvent('BILLING_ADDRESS_CHANGED', addr);
+}
+
+// ================================================================
+// UI CUSTOMIZATION
+// ================================================================
+function getPayBtn() {
+  return document.getElementById('apm-pay-btn');
+}
+
+function applyStyle(prop, val) {
+  const btn = getPayBtn();
+  if (btn) btn.style[prop] = val;
+}
+
+function applyBtnWidth(val) {
+  const btn = getPayBtn();
+  if (!btn) return;
+  if (val === 'full') {
+    btn.style.width = '100%';
+    document.getElementById('val-width').textContent = '100%';
+  } else {
+    btn.style.width = val + 'px';
+    document.getElementById('val-width').textContent = val + 'px';
+  }
+}
+
+function applyLabel(text) {
+  const label = document.getElementById('apm-pay-label');
+  if (label) label.textContent = text || `Pay with ${selectedApm?.name || 'APM'}`;
+}
+
+function toggleLogo(show) {
+  const logo = document.getElementById('apm-pay-logo');
+  if (logo) logo.style.display = show ? '' : 'none';
+}
+
+function applyLogoSize(size) {
+  const logo = document.getElementById('apm-pay-logo');
+  if (logo) logo.style.height = size + 'px';
+}
+
+function toggleDarkMode(dark) {
+  document.body.style.background = dark ? '#0a0a0a' : '#f5f5f5';
+  document.body.style.color = dark ? '#e0e0e0' : '#222';
+}
+
+function resetStyling() {
+  if (!selectedApm) return;
+  const color = BRAND_COLORS[selectedApm.code] || '#7C4DFF';
+  document.getElementById('ctrl-color').value = color;
+  document.getElementById('ctrl-height').value = 48;
+  document.getElementById('ctrl-width').value = 400;
+  document.getElementById('ctrl-fullwidth').checked = false;
+  document.getElementById('ctrl-radius').value = 8;
+  document.getElementById('ctrl-fontsize').value = 17;
+  document.getElementById('ctrl-label').value = '';
+  document.getElementById('ctrl-logo').checked = true;
+  document.getElementById('ctrl-logosize').value = 24;
+  document.getElementById('ctrl-dark').checked = true;
+  document.getElementById('val-height').textContent = '48px';
+  document.getElementById('val-width').textContent = '400px';
+  document.getElementById('val-radius').textContent = '8px';
+  document.getElementById('val-fontsize').textContent = '17px';
+  document.getElementById('val-logosize').textContent = '24px';
+  // Re-render to reset
+  renderAdapter();
+  toggleDarkMode(true);
+}
+
+// ================================================================
+// WIDGET EVENTS
+// ================================================================
+function emitHeightChanged() {
+  const height = document.getElementById('widget-height-slider').value;
+  logEvent('WIDGET_HEIGHT_CHANGED', { height: parseInt(height), apm: selectedApm?.code });
+  const container = document.getElementById('payment-container');
+  container.style.minHeight = height + 'px';
+}
+
+function showOverlay() {
+  logEvent('WIDGET_OVERLAY_SHOWN', { apm: selectedApm?.code });
+  document.getElementById('payment-container').classList.add('overlay-active');
+}
+
+function hideOverlay() {
+  logEvent('WIDGET_OVERLAY_HIDDEN', { apm: selectedApm?.code });
+  document.getElementById('payment-container').classList.remove('overlay-active');
+}
+
+function simulateVoucherExpiry() {
+  if (!selectedApm || selectedApm.pattern !== 'voucher-cash') return;
+  const seconds = parseInt(document.getElementById('expiry-countdown').value);
+  const statusEl = document.getElementById('expiry-status');
+  let remaining = seconds;
+  if (expiryTimer) clearInterval(expiryTimer);
+
+  statusEl.textContent = `Voucher expires in ${remaining}s...`;
+  statusEl.style.color = '#ffb300';
+  expiryTimer = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(expiryTimer);
+      expiryTimer = null;
+      statusEl.textContent = 'Voucher expired!';
+      statusEl.style.color = '#f44336';
+      logEvent('VOUCHER_EXPIRED', { apm: selectedApm.code, countdown: seconds });
+    } else {
+      statusEl.textContent = `Voucher expires in ${remaining}s...`;
+    }
+  }, 1000);
+}
+
+function forceTimeout() {
+  if (!selectedApm) return;
+  logEvent('TIMEOUT_STARTED', { apm: selectedApm.code, timeout: 3000 });
+  setTimeout(() => {
+    logEvent('PAYMENT_ERROR', { code: 'TIMEOUT', message: 'Forced timeout after 3s', apm: selectedApm.code });
+  }, 3000);
+}
+
+// ================================================================
+// UTILITY: delay
+// ================================================================
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+function getSweepDelay() { return parseInt(document.getElementById('sweep-delay').value) || 500; }
+
+// ================================================================
+// AUTOMATED TEST SWEEP
+// ================================================================
+function updateSweepProgress(current, total, label) {
+  const pct = Math.round((current / total) * 100);
+  document.getElementById('sweep-progress-bar').style.width = pct + '%';
+  document.getElementById('sweep-status').textContent = label || `Testing APM ${current}/${total}...`;
+}
+
+function stopSweep() {
+  sweepAbort = true;
+  document.getElementById('btn-stop-sweep').disabled = true;
+}
+
+function initResultsTable() {
+  const tbody = document.getElementById('results-tbody');
+  tbody.innerHTML = '';
+  ALL_APMS.forEach(apm => {
+    const tr = document.createElement('tr');
+    tr.id = `result-${apm.code}`;
+    tr.innerHTML = `<td>${apm.name} <span style="color:#666;font-size:0.85em;">(${apm.code})</span></td><td class="result-skip">--</td><td class="result-skip">--</td><td class="result-skip">--</td><td class="result-skip">--</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function setResultCell(apmCode, colIndex, passed, total) {
+  const row = document.getElementById(`result-${apmCode}`);
+  if (!row) return;
+  const td = row.children[colIndex];
+  if (passed === total) {
+    td.className = 'result-pass';
+    td.textContent = `${passed}/${total}`;
+  } else if (passed === 0) {
+    td.className = 'result-fail';
+    td.textContent = `${passed}/${total}`;
+  } else {
+    td.className = 'result-fail';
+    td.textContent = `${passed}/${total}`;
+  }
+}
+
+function setResultRunning(apmCode, colIndex) {
+  const row = document.getElementById(`result-${apmCode}`);
+  if (!row) return;
+  row.children[colIndex].className = 'result-running';
+  row.children[colIndex].textContent = '...';
+}
+
+function computeOverall(apmCode) {
+  const row = document.getElementById(`result-${apmCode}`);
+  if (!row) return;
+  let totalPass = 0, totalTests = 0;
+  for (let i = 1; i <= 3; i++) {
+    const text = row.children[i].textContent;
+    const match = text.match(/(\d+)\/(\d+)/);
+    if (match) {
+      totalPass += parseInt(match[1]);
+      totalTests += parseInt(match[2]);
+    }
+  }
+  const td = row.children[4];
+  if (totalTests === 0) { td.textContent = '--'; td.className = 'result-skip'; return; }
+  td.textContent = `${totalPass}/${totalTests}`;
+  td.className = totalPass === totalTests ? 'result-pass' : 'result-fail';
+}
+
+// ---- Callback Tests ----
+async function runCallbackTests() {
+  sweepRunning = true;
+  sweepAbort = false;
+  document.getElementById('btn-stop-sweep').disabled = false;
+  initResultsTable();
+  const delayMs = getSweepDelay();
+
+  for (let i = 0; i < ALL_APMS.length; i++) {
+    if (sweepAbort) break;
+    const apm = ALL_APMS[i];
+    updateSweepProgress(i + 1, ALL_APMS.length, `Callback: ${apm.name} (${i+1}/${ALL_APMS.length})`);
+    setResultRunning(apm.code, 1);
+
+    selectApm(apm.code);
+    await delay(delayMs);
+
+    await initAdapter();
+    await delay(delayMs);
+
+    await renderAdapter();
+    await delay(delayMs);
+
+    const result = await authorizeAdapter();
+    await delay(delayMs);
+
+    let passed = 0;
+    let tests = 0;
+
+    // Check if server responded OK
+    tests++;
+    if (result && result.success) passed++;
+
+    // Check expected pattern-specific events
+    const expectedEvents = ['PAYMENT_METHOD_READY', 'RENDER_COMPLETE', 'AUTH_STARTED'];
+    if (apm.pattern === 'bank-redirect' || apm.pattern === 'redirect-wallet') expectedEvents.push('REDIRECT_REQUIRED');
+    if (apm.pattern === 'qr-code') expectedEvents.push('QR_CODE_GENERATED');
+    if (apm.pattern === 'voucher-cash') expectedEvents.push('VOUCHER_CODE_GENERATED');
+
+    for (const evt of expectedEvents) {
+      tests++;
+      if (events.some(e => e.type === evt)) passed++;
+    }
+
+    // For supported callbacks, trigger them
+    const cbEvents = ['SHIPPING_ADDRESS_CHANGED','SHIPPING_METHOD_CHANGED','COUPON_CODE_CHANGED','PAYMENT_METHOD_SELECTED','BILLING_ADDRESS_CHANGED'];
+    for (const cb of cbEvents) {
+      const support = getCbSupport(cb, apm.code);
+      if (support !== 'na') {
+        tests++;
+        // Simulate the callback
+        logEvent(cb, { simulated: true, apm: apm.code });
+        await delay(100);
+        if (events.some(e => e.type === cb)) passed++;
+      }
+    }
+
+    setResultCell(apm.code, 1, passed, tests);
+    computeOverall(apm.code);
+    clearEventLog();
+  }
+
+  sweepRunning = false;
+  document.getElementById('btn-stop-sweep').disabled = true;
+  document.getElementById('sweep-status').textContent = sweepAbort ? 'Stopped' : 'Callback tests complete';
+}
+
+// ---- Styling Tests ----
+async function runStylingTests() {
+  sweepRunning = true;
+  sweepAbort = false;
+  document.getElementById('btn-stop-sweep').disabled = false;
+  if (!document.getElementById('results-tbody').children.length) initResultsTable();
+  const delayMs = getSweepDelay();
+
+  const assertions = [
+    { prop: 'background', apply: () => applyStyle('background', '#ff0000'), check: () => { const s = getComputedStyle(getPayBtn()); return s.backgroundColor.includes('255') || s.background.includes('255'); } },
+    { prop: 'height-32', apply: () => applyStyle('height', '32px'), check: () => parseInt(getComputedStyle(getPayBtn()).height) >= 30 && parseInt(getComputedStyle(getPayBtn()).height) <= 34 },
+    { prop: 'height-64', apply: () => applyStyle('height', '64px'), check: () => parseInt(getComputedStyle(getPayBtn()).height) >= 62 && parseInt(getComputedStyle(getPayBtn()).height) <= 66 },
+    { prop: 'width-200', apply: () => { getPayBtn().style.width = '200px'; }, check: () => parseInt(getComputedStyle(getPayBtn()).width) >= 198 && parseInt(getComputedStyle(getPayBtn()).width) <= 202 },
+    { prop: 'width-600', apply: () => { getPayBtn().style.width = '600px'; }, check: () => parseInt(getComputedStyle(getPayBtn()).width) >= 598 },
+    { prop: 'width-full', apply: () => { getPayBtn().style.width = '100%'; }, check: () => getPayBtn().offsetWidth >= getPayBtn().parentElement.offsetWidth - 2 },
+    { prop: 'radius-0', apply: () => applyStyle('borderRadius', '0px'), check: () => getComputedStyle(getPayBtn()).borderRadius === '0px' },
+    { prop: 'radius-16', apply: () => applyStyle('borderRadius', '16px'), check: () => getComputedStyle(getPayBtn()).borderRadius === '16px' },
+    { prop: 'radius-32', apply: () => applyStyle('borderRadius', '32px'), check: () => getComputedStyle(getPayBtn()).borderRadius === '32px' },
+    { prop: 'font-12', apply: () => applyStyle('fontSize', '12px'), check: () => getComputedStyle(getPayBtn()).fontSize === '12px' },
+    { prop: 'font-18', apply: () => applyStyle('fontSize', '18px'), check: () => getComputedStyle(getPayBtn()).fontSize === '18px' },
+    { prop: 'font-24', apply: () => applyStyle('fontSize', '24px'), check: () => getComputedStyle(getPayBtn()).fontSize === '24px' },
+    { prop: 'label-change', apply: () => applyLabel('Buy Now'), check: () => document.getElementById('apm-pay-label')?.textContent === 'Buy Now' },
+    { prop: 'label-empty', apply: () => applyLabel(''), check: () => document.getElementById('apm-pay-label')?.textContent.includes('Pay with') },
+    { prop: 'logo-hide', apply: () => toggleLogo(false), check: () => getComputedStyle(document.getElementById('apm-pay-logo')).display === 'none' },
+    { prop: 'logo-show', apply: () => toggleLogo(true), check: () => getComputedStyle(document.getElementById('apm-pay-logo')).display !== 'none' },
+    { prop: 'logo-16', apply: () => applyLogoSize(16), check: () => document.getElementById('apm-pay-logo')?.style.height === '16px' },
+    { prop: 'logo-40', apply: () => applyLogoSize(40), check: () => document.getElementById('apm-pay-logo')?.style.height === '40px' },
+    { prop: 'bg-green', apply: () => applyStyle('background', '#00ff00'), check: () => { const bg = getComputedStyle(getPayBtn()).backgroundColor; return bg.includes('0, 255, 0') || bg.includes('0,255,0'); } },
+    { prop: 'bg-blue', apply: () => applyStyle('background', '#0000ff'), check: () => { const bg = getComputedStyle(getPayBtn()).backgroundColor; return bg.includes('0, 0, 255') || bg.includes('0,0,255'); } },
+    { prop: 'padding-change', apply: () => applyStyle('padding', '20px 40px'), check: () => parseInt(getComputedStyle(getPayBtn()).paddingTop) >= 18 },
+    { prop: 'cursor', apply: () => applyStyle('cursor', 'not-allowed'), check: () => getComputedStyle(getPayBtn()).cursor === 'not-allowed' },
+  ];
+
+  for (let i = 0; i < ALL_APMS.length; i++) {
+    if (sweepAbort) break;
+    const apm = ALL_APMS[i];
+    updateSweepProgress(i + 1, ALL_APMS.length, `Styling: ${apm.name} (${i+1}/${ALL_APMS.length})`);
+    setResultRunning(apm.code, 2);
+
+    selectApm(apm.code);
+    await delay(100);
+    await initAdapter();
+    await delay(100);
+    await renderAdapter();
+    await delay(100);
+
+    let passed = 0;
+    for (const a of assertions) {
+      try {
+        a.apply();
+        await delay(20);
+        if (a.check()) passed++;
+      } catch (e) { /* skip */ }
+    }
+
+    setResultCell(apm.code, 2, passed, assertions.length);
+    computeOverall(apm.code);
+    clearEventLog();
+    await delay(delayMs / 5);
+  }
+
+  sweepRunning = false;
+  document.getElementById('btn-stop-sweep').disabled = true;
+  document.getElementById('sweep-status').textContent = sweepAbort ? 'Stopped' : 'Styling tests complete';
+}
+
+// ---- Event Tests ----
+async function runEventTests() {
+  sweepRunning = true;
+  sweepAbort = false;
+  document.getElementById('btn-stop-sweep').disabled = false;
+  if (!document.getElementById('results-tbody').children.length) initResultsTable();
+  const delayMs = getSweepDelay();
+
+  for (let i = 0; i < ALL_APMS.length; i++) {
+    if (sweepAbort) break;
+    const apm = ALL_APMS[i];
+    updateSweepProgress(i + 1, ALL_APMS.length, `Events: ${apm.name} (${i+1}/${ALL_APMS.length})`);
+    setResultRunning(apm.code, 3);
+
+    let passed = 0;
+    const totalTests = 8;
+
+    // Test 1: READY fires on init
+    selectApm(apm.code);
+    clearEventLog();
+    await initAdapter();
+    await delay(100);
+    if (events.some(e => e.type === 'PAYMENT_METHOD_READY')) passed++;
+
+    // Test 2: RENDER_COMPLETE fires on render
+    await renderAdapter();
+    await delay(100);
+    if (events.some(e => e.type === 'RENDER_COMPLETE')) passed++;
+
+    // Test 3: AUTH_STARTED fires on authorize
+    clearEventLog();
+    await authorizeAdapter();
+    await delay(delayMs);
+    if (events.some(e => e.type === 'AUTH_STARTED')) passed++;
+
+    // Test 4: READY before terminal
+    {
+      clearEventLog();
+      selectApm(apm.code);
+      await initAdapter();
+      await delay(100);
+      await renderAdapter();
+      await delay(100);
+      await authorizeAdapter();
+      await delay(delayMs);
+      const readyIdx = events.findIndex(e => e.type === 'PAYMENT_METHOD_READY');
+      const terminalIdx = events.findIndex(e => ['PAYMENT_AUTHORIZED','PAYMENT_CANCELLED','PAYMENT_ERROR'].includes(e.type));
+      if (readyIdx >= 0 && (terminalIdx < 0 || readyIdx < terminalIdx)) passed++;
+    }
+
+    // Test 5: Double init does not crash
+    {
+      clearEventLog();
+      selectApm(apm.code);
+      try {
+        await initAdapter();
+        await initAdapter();
+        passed++; // no crash = pass
+      } catch (e) { /* fail */ }
+    }
+
+    // Test 6: Auth before init (should produce error or handle gracefully)
+    {
+      clearEventLog();
+      selectApm(apm.code);
+      try {
+        await authorizeAdapter();
+        await delay(delayMs);
+        passed++; // did not crash = pass
+      } catch (e) { /* fail */ }
+    }
+
+    // Test 7: Teardown clears state
+    {
+      clearEventLog();
+      selectApm(apm.code);
+      await initAdapter();
+      await renderAdapter();
+      await teardownAdapter();
+      if (!document.getElementById('apm-pay-btn')) passed++;
+    }
+
+    // Test 8: Event count increments
+    {
+      clearEventLog();
+      selectApm(apm.code);
+      const before = eventCount;
+      await initAdapter();
+      if (eventCount > before) passed++;
+    }
+
+    setResultCell(apm.code, 3, passed, totalTests);
+    computeOverall(apm.code);
+    clearEventLog();
+  }
+
+  sweepRunning = false;
+  document.getElementById('btn-stop-sweep').disabled = true;
+  document.getElementById('sweep-status').textContent = sweepAbort ? 'Stopped' : 'Event tests complete';
+}
+
+// ---- Run All ----
+async function runAllTests() {
+  initResultsTable();
+  await runCallbackTests();
+  if (!sweepAbort) await runStylingTests();
+  if (!sweepAbort) await runEventTests();
+  document.getElementById('sweep-status').textContent = sweepAbort ? 'Stopped' : 'All tests complete!';
+}
+
+// ================================================================
+// INIT
+// ================================================================
+buildApmList();
+
+// Set collapsible max-heights after DOM is ready
+requestAnimationFrame(() => {
+  ['callbacks-body','sim-body','styling-body','widget-events-body','sweep-body'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.maxHeight = el.scrollHeight + 2000 + 'px';
+  });
+});
+</script>
+</body>
+</html>

@@ -30,7 +30,7 @@ export const AUDIENCE_VIEWS = [
     altitude: '20,000 ft',
     audience: 'program leads, partner teams, account managers',
     tldr: '70 APMs delivered through one contract, six reusable UX patterns, and a single Commerce Hub endpoint.',
-    body: `<h3>Coverage</h3><p>v2.2 ships <strong>70 alternative payment methods</strong>: 16 direct integrations that Fiserv operates itself, plus 54 methods routed through the PPRO aggregator. The string <code>PPRO</code> never appears on the merchant wire. From the merchant perspective, SOFORT, Przelewy24, and MB WAY look identical to Klarna or PayPal: a single POST to Commerce Hub with a <code>paymentMethod.provider</code> field.</p><h3>Six UX patterns cover every APM</h3><table><tr><td><strong>Redirect</strong></td><td>Browser leaves the merchant domain, authenticates, returns. SOFORT, iDEAL, Trustly, most PPRO methods.</td></tr><tr><td><strong>Tokenization</strong></td><td>Inline form or hosted field produces a single-use token. Klarna, Afterpay, Affirm, Sezzle, Zip.</td></tr><tr><td><strong>Native wallet</strong></td><td>Device-owned payment sheet. Apple Pay, Google Pay.</td></tr><tr><td><strong>Button SDK</strong></td><td>Third-party SDK renders a branded button and orchestrates auth. PayPal, PayPal Pay Later, Venmo, Cash App.</td></tr><tr><td><strong>QR</strong></td><td>Display a scannable code, poll or listen for settlement. WeChat Pay, Alipay, Alipay+, PIX, UPI, PayNow.</td></tr><tr><td><strong>Voucher</strong></td><td>Display a reference and wait for off-system settlement. Boleto, OXXO, Konbini.</td></tr></table><h3>What partners and account teams gain</h3><ul><li><strong>One contract to pitch.</strong> A merchant signs with Fiserv and gets the full 70-method catalog, no separate PPRO or Klarna paperwork.</li><li><strong>One integration to support.</strong> Solution engineers learn one SDK. Onboarding for a new APM is a configuration change.</li><li><strong>One escalation path.</strong> Incidents, chargebacks, and reconciliation tickets route through Commerce Hub support. Merchants never call PPRO.</li><li><strong>Capability matrix is visible.</strong> The capabilities declaration exposes per-adapter support for refunds, partial captures, recurring, chargebacks, and webhook semantics. Account managers can answer a merchant's capability question from a single file.</li></ul><h3>Partner obligations</h3><p>PPRO remains the upstream aggregator for 54 long-tail methods. Direct partners (Klarna, PayPal, Apple, Google, Block) retain their existing contracts with Fiserv. v2.2 does not change partner economics. It changes how the merchant reaches them.</p><h3>Roadmap signal</h3><ul><li><strong>v2.2 (now):</strong> POC harness, 70 adapter stubs, 6 base classes, 11-state machine.</li><li><strong>v2.1 hardening (next):</strong> 7 hero adapters pilot-ready with live Commerce Hub credentials.</li><li><strong>v3.0:</strong> Multi-tenant isolation, per-merchant routing policy, regional data residency.</li></ul>`,
+    body: `<h3>Coverage</h3><p>v2.2 ships <strong>70 alternative payment methods</strong>: 16 direct integrations that Fiserv operates itself, plus 54 methods routed through the PPRO aggregator. The string <code>PPRO</code> never appears on the merchant wire. From the merchant perspective, SOFORT, Przelewy24, and MB WAY look identical to Klarna or PayPal: a single POST to Commerce Hub with a <code>paymentMethod.provider</code> field.</p><h3>Six UX patterns cover every APM</h3><table><tr><td><strong>Redirect</strong></td><td>Browser leaves the merchant domain, authenticates, returns. SOFORT, iDEAL, Trustly, most PPRO methods.</td></tr><tr><td><strong>BNPL</strong></td><td>Inline form or hosted field produces a single-use token. Klarna, Afterpay, Affirm, Sezzle, Zip.</td></tr><tr><td><strong>Native wallet</strong></td><td>Device-owned payment sheet. Apple Pay, Google Pay.</td></tr><tr><td><strong>Button SDK</strong></td><td>Third-party SDK renders a branded button and orchestrates auth. PayPal, PayPal Pay Later, Venmo, Cash App.</td></tr><tr><td><strong>QR</strong></td><td>Display a scannable code, poll or listen for settlement. WeChat Pay, Alipay, Alipay+, PIX, UPI, PayNow.</td></tr><tr><td><strong>Voucher</strong></td><td>Display a reference and wait for off-system settlement. Boleto, OXXO, Konbini.</td></tr></table><h3>What partners and account teams gain</h3><ul><li><strong>One contract to pitch.</strong> A merchant signs with Fiserv and gets the full 70-method catalog, no separate PPRO or Klarna paperwork.</li><li><strong>One integration to support.</strong> Solution engineers learn one SDK. Onboarding for a new APM is a configuration change.</li><li><strong>One escalation path.</strong> Incidents, chargebacks, and reconciliation tickets route through Commerce Hub support. Merchants never call PPRO.</li><li><strong>Capability matrix is visible.</strong> The capabilities declaration exposes per-adapter support for refunds, partial captures, recurring, chargebacks, and webhook semantics. Account managers can answer a merchant's capability question from a single file.</li></ul><h3>Partner obligations</h3><p>PPRO remains the upstream aggregator for 54 long-tail methods. Direct partners (Klarna, PayPal, Apple, Google, Block) retain their existing contracts with Fiserv. v2.2 does not change partner economics. It changes how the merchant reaches them.</p><h3>Roadmap signal</h3><ul><li><strong>v2.2 (now):</strong> POC harness, 70 adapter stubs, 6 base classes, 11-state machine.</li><li><strong>v2.1 hardening (next):</strong> 7 hero adapters pilot-ready with live Commerce Hub credentials.</li><li><strong>v3.0:</strong> Multi-tenant isolation, per-merchant routing policy, regional data residency.</li></ul>`,
   },
   {
     key: 'engineering',
@@ -38,7 +38,7 @@ export const AUDIENCE_VIEWS = [
     altitude: '10,000 ft',
     audience: 'senior engineers, architects',
     tldr: 'Monorepo of three typed packages plus a reference Express server, one CH endpoint, 11-state FSM, 6 base adapters, 5 production tripwires.',
-    body: `<h3>Package layout</h3><ul><li><code>packages/shared-types</code> — zero-runtime TypeScript types. The APM registry lives in <code>src/apm-mapping.ts</code>, the capability matrix in <code>src/capabilities.ts</code>. Nothing in this package emits JavaScript.</li><li><code>packages/commerce-hub-node</code> — server-side Commerce Hub client. Handles HMAC signing, request envelopes, and CH error normalization.</li><li><code>packages/checkout-sdk-browser</code> — browser SDK. Exposes the 11-state FSM, adapter base classes, and the postMessage bridge back to the merchant page.</li><li><code>packages/reference-server</code> — Express app. Routes live under <code>src/routes/orders.ts</code>. The self-contained browser harness is served from <code>public/</code>.</li></ul><h3>Five architectural decisions</h3><p><strong>1. ADR-004 single Commerce Hub endpoint.</strong> The merchant backend always POSTs to CH <code>/checkouts/v1/orders</code>. Routing to PPRO, Klarna, PayPal, and wallets happens inside Commerce Hub. PPRO sub-methods set <code>paymentMethod.provider = uppercase(adapterId)</code>. The literal string <code>PPRO</code> never appears on the wire. This is enforced in <code>packages/reference-server/src/routes/orders.ts</code>.</p><p><strong>2. ADR-003 eleven-state FSM.</strong> <code>idle → initializing → ready → authorizing → pending → awaiting_merchant_capture → capturing → completed | failed | cancelled | auth_expired | script_load_failed</code>. Exactly 18 legal transitions. Illegal transitions throw at runtime and fail harness tests. The FSM is owned by the browser SDK but mirrored server-side for webhook reconciliation.</p><p><strong>3. Six base adapter classes.</strong> <code>RedirectBase</code>, <code>TokenizationBase</code>, <code>NativeWalletBase</code>, <code>ButtonSdkBase</code>, <code>QrBase</code>, <code>VoucherBase</code>. All 70 concrete adapters extend one of these. Adding an APM is a registry entry plus optional per-method overrides. No new flow code.</p><p><strong>4. First-writer-wins result cache.</strong> Webhook confirmations and synchronous CH responses race for the authoritative result. <code>OrderResultCache</code> resolves on the first writer and idempotently no-ops subsequent writes. This removes webhook-vs-sync race conditions that plague multi-rail integrations.</p><p><strong>5. HARNESS_MODE short-circuit.</strong> When <code>HARNESS_MODE=true</code>, the reference server intercepts CH calls and returns synthetic responses driven by the <code>X-Harness-Scenario</code> header. The browser harness is fully self-contained: no CH credentials, no partner keys, no network dependency. <strong>HARNESS_MODE is dev-only and must never run in production.</strong></p><h3>Refuse-production tripwires</h3><p>Five layers prevent the POC-mode static auth from leaking into a production deployment:</p><ul><li>Startup check refuses to boot if <code>HARNESS_MODE=true</code> and <code>NODE_ENV=production</code>.</li><li>The synthetic CH client throws if a real CH URL is configured alongside HARNESS_MODE.</li><li>Static auth tokens are flagged with a <code>__poc_only</code> sentinel that the CH client rejects.</li><li>Build artifacts stamp a <code>poc</code> channel marker; the deployment pipeline blocks <code>poc</code>-channel artifacts from production targets.</li><li>Health check endpoint returns HTTP 503 with <code>reason: poc_mode_active</code> when HARNESS_MODE is live.</li></ul><h3>Scalability posture</h3><p>The reference server is stateless. Horizontal scaling is linear. <code>OrderResultCache</code> is in-process for v2.2 and backed by Redis in v3.0. Commerce Hub absorbs the retry, circuit-breaker, and rate-limit logic. The browser SDK batches state transitions to a single postMessage per commit to keep iframe hosts responsive.</p><h3>Observability</h3><p>Every FSM transition emits a structured log line with <code>correlationId</code>, <code>adapterId</code>, <code>fromState</code>, <code>toState</code>. Webhook receipts are logged with a deterministic <code>webhookId</code> for idempotent replay. The harness UI surfaces this stream in the Events tab.</p><h3>Security</h3><p>HMAC on every CH request. CSP is configured on the reference server with nonce-based script-src. All user input at the browser boundary is schema-validated before reaching the SDK core. Webhook endpoints verify signature before touching <code>OrderResultCache</code>.</p><h3>Single-tenant today, multi-tenant in v3</h3><p>v2.2 is single-tenant: one merchant, one configuration, one CH credential set. v3.0 introduces per-merchant routing policy, tenant isolation in the result cache, and regional data residency controls. The package boundaries were designed for this split; no rewrite is required.</p>`,
+    body: `<h3>Package layout</h3><ul><li><code>packages/shared-types</code> — zero-runtime TypeScript types. The APM registry lives in <code>src/apm-mapping.ts</code>, the capability matrix in <code>src/capabilities.ts</code>. Nothing in this package emits JavaScript.</li><li><code>packages/commerce-hub-node</code> — server-side Commerce Hub client. Handles HMAC signing, request envelopes, and CH error normalization.</li><li><code>packages/checkout-sdk-browser</code> — browser SDK. Exposes the 11-state FSM, adapter base classes, and the postMessage bridge back to the merchant page.</li><li><code>packages/reference-server</code> — Express app. Routes live under <code>src/routes/orders.ts</code>. The self-contained browser harness is served from <code>public/</code>.</li></ul><h3>Five architectural decisions</h3><p><strong>1. ADR-004 single Commerce Hub endpoint.</strong> The merchant backend always POSTs to CH <code>/checkouts/v1/orders</code>. Routing to PPRO, Klarna, PayPal, and wallets happens inside Commerce Hub. PPRO sub-methods set <code>paymentMethod.provider = uppercase(adapterId)</code>. The literal string <code>PPRO</code> never appears on the wire. This is enforced in <code>packages/reference-server/src/routes/orders.ts</code>.</p><p><strong>2. ADR-003 eleven-state FSM.</strong> <code>idle → initializing → ready → authorizing → pending → awaiting_merchant_capture → capturing → completed | failed | cancelled | auth_expired | script_load_failed</code>. Exactly 18 legal transitions. Illegal transitions throw at runtime and fail harness tests. The FSM is owned by the browser SDK but mirrored server-side for webhook reconciliation.</p><p><strong>3. Six base adapter classes.</strong> <code>RedirectBase</code>, <code>BnplBase</code>, <code>NativeWalletBase</code>, <code>ButtonSdkBase</code>, <code>QrBase</code>, <code>VoucherBase</code>. All 70 concrete adapters extend one of these. Adding an APM is a registry entry plus optional per-method overrides. No new flow code.</p><p><strong>4. First-writer-wins result cache.</strong> Webhook confirmations and synchronous CH responses race for the authoritative result. <code>OrderResultCache</code> resolves on the first writer and idempotently no-ops subsequent writes. This removes webhook-vs-sync race conditions that plague multi-rail integrations.</p><p><strong>5. HARNESS_MODE short-circuit.</strong> When <code>HARNESS_MODE=true</code>, the reference server intercepts CH calls and returns synthetic responses driven by the <code>X-Harness-Scenario</code> header. The browser harness is fully self-contained: no CH credentials, no partner keys, no network dependency. <strong>HARNESS_MODE is dev-only and must never run in production.</strong></p><h3>Refuse-production tripwires</h3><p>Five layers prevent the POC-mode static auth from leaking into a production deployment:</p><ul><li>Startup check refuses to boot if <code>HARNESS_MODE=true</code> and <code>NODE_ENV=production</code>.</li><li>The synthetic CH client throws if a real CH URL is configured alongside HARNESS_MODE.</li><li>Static auth tokens are flagged with a <code>__poc_only</code> sentinel that the CH client rejects.</li><li>Build artifacts stamp a <code>poc</code> channel marker; the deployment pipeline blocks <code>poc</code>-channel artifacts from production targets.</li><li>Health check endpoint returns HTTP 503 with <code>reason: poc_mode_active</code> when HARNESS_MODE is live.</li></ul><h3>Scalability posture</h3><p>The reference server is stateless. Horizontal scaling is linear. <code>OrderResultCache</code> is in-process for v2.2 and backed by Redis in v3.0. Commerce Hub absorbs the retry, circuit-breaker, and rate-limit logic. The browser SDK batches state transitions to a single postMessage per commit to keep iframe hosts responsive.</p><h3>Observability</h3><p>Every FSM transition emits a structured log line with <code>correlationId</code>, <code>adapterId</code>, <code>fromState</code>, <code>toState</code>. Webhook receipts are logged with a deterministic <code>webhookId</code> for idempotent replay. The harness UI surfaces this stream in the Events tab.</p><h3>Security</h3><p>HMAC on every CH request. CSP is configured on the reference server with nonce-based script-src. All user input at the browser boundary is schema-validated before reaching the SDK core. Webhook endpoints verify signature before touching <code>OrderResultCache</code>.</p><h3>Single-tenant today, multi-tenant in v3</h3><p>v2.2 is single-tenant: one merchant, one configuration, one CH credential set. v3.0 introduces per-merchant routing policy, tenant isolation in the result cache, and regional data residency controls. The package boundaries were designed for this split; no rewrite is required.</p>`,
   },
   {
     key: 'productManager',
@@ -46,7 +46,7 @@ export const AUDIENCE_VIEWS = [
     altitude: 'Ground level',
     audience: 'PMs, QA leads',
     tldr: 'Six UX patterns, 70 adapters, a feature matrix you can query today, and a hero-adapter hardening track in v2.1.',
-    body: `<h3>Use cases by pattern</h3><table><tr><td><strong>Redirect</strong></td><td>EU bank transfers (SOFORT, Giropay, iDEAL), pay-in-installments that require bank auth (Klarna Pay Later), LATAM instant rails (PIX). User leaves the merchant domain, authenticates at the method's host, returns to a success or failure URL. Best for methods that need strong customer authentication or are regulated at the bank level.</td></tr><tr><td><strong>Tokenization</strong></td><td>BNPL providers that want the merchant to keep the checkout chrome (Klarna, Afterpay, Affirm, Sezzle). The SDK collects payment-method data, the provider returns a single-use token, the backend charges that token via CH. Best for merchants protective of their brand and conversion funnel.</td></tr><tr><td><strong>Native wallet</strong></td><td>Apple Pay and Google Pay. Device surfaces the payment sheet, returns a cryptogram, backend forwards to CH. Best conversion rates of any pattern when the device is enrolled.</td></tr><tr><td><strong>Button SDK</strong></td><td>PayPal, PayPal Pay Later, Venmo, Cash App. The partner renders their own branded button and runs their own auth UX. The SDK orchestrates the handoff and commits the result. Best for brand-trusted wallets where the partner UX is the conversion lever.</td></tr><tr><td><strong>QR</strong></td><td>WeChat Pay, Alipay, some PIX deployments. Display a code, the user scans with their phone, settlement arrives via webhook. Best for APAC and mobile-first markets.</td></tr><tr><td><strong>Voucher</strong></td><td>Boleto (BR), OXXO (MX), Konbini (JP). Display a reference, the customer pays offline at a bank or convenience store, webhook confirms days later. Order moves to <code>pending</code> until settlement.</td></tr></table><h3>Feature matrix</h3><p>The authoritative source is <code>packages/shared-types/src/capabilities.ts</code>. Per adapter it declares:</p><ul><li><strong>Refunds:</strong> full, partial, none.</li><li><strong>Captures:</strong> auto, merchant-initiated, not supported.</li><li><strong>Recurring:</strong> supported, not supported, token-only.</li><li><strong>Chargeback posture:</strong> bank-disputable, irrevocable, partner-arbitrated.</li><li><strong>Settlement semantics:</strong> sync, async-webhook, delayed-voucher.</li><li><strong>Currency and country lists.</strong></li></ul><h3>What v2.2 delivers today</h3><ul><li>All 70 adapters instantiate, pass registry tests, and run end-to-end in HARNESS_MODE with synthetic CH responses.</li><li>The 10-tab Inspector surfaces every adapter's CH wire payload, capability flags, state-machine trace, live API trace, and real SDK loader.</li><li>Every UX pattern has at least one exemplar adapter fully wired.</li><li>The merchant contract is locked: one CH endpoint, one envelope shape, one FSM.</li></ul><h3>What v2.1 hardening adds</h3><p>Seven hero adapters move from POC to pilot-ready with live Commerce Hub credentials, real partner SDKs, and production-grade error paths: <strong>Klarna, PayPal, Apple Pay, Google Pay, Cash App, PIX, iDEAL</strong>. Each receives a dedicated integration test suite, a rollback plan, and a Fiserv-operated sandbox.</p><h3>Out of scope for v2.2</h3><ul><li>Multi-tenant merchant isolation — targeted for v3.0.</li><li>Per-merchant routing policy overrides — v3.0.</li><li>Offline voucher reconciliation UI — v3.0.</li><li>Recurring billing orchestration across APMs with incompatible rails — out of program.</li></ul>`,
+    body: `<h3>Use cases by pattern</h3><table><tr><td><strong>Redirect</strong></td><td>EU bank transfers (SOFORT, Giropay, iDEAL), pay-in-installments that require bank auth (Klarna Pay Later), LATAM instant rails (PIX). User leaves the merchant domain, authenticates at the method's host, returns to a success or failure URL. Best for methods that need strong customer authentication or are regulated at the bank level.</td></tr><tr><td><strong>BNPL</strong></td><td>BNPL providers that want the merchant to keep the checkout chrome (Klarna, Afterpay, Affirm, Sezzle). The SDK collects payment-method data, the provider returns a single-use token, the backend charges that token via CH. Best for merchants protective of their brand and conversion funnel.</td></tr><tr><td><strong>Native wallet</strong></td><td>Apple Pay and Google Pay. Device surfaces the payment sheet, returns a cryptogram, backend forwards to CH. Best conversion rates of any pattern when the device is enrolled.</td></tr><tr><td><strong>Button SDK</strong></td><td>PayPal, PayPal Pay Later, Venmo, Cash App. The partner renders their own branded button and runs their own auth UX. The SDK orchestrates the handoff and commits the result. Best for brand-trusted wallets where the partner UX is the conversion lever.</td></tr><tr><td><strong>QR</strong></td><td>WeChat Pay, Alipay, some PIX deployments. Display a code, the user scans with their phone, settlement arrives via webhook. Best for APAC and mobile-first markets.</td></tr><tr><td><strong>Voucher</strong></td><td>Boleto (BR), OXXO (MX), Konbini (JP). Display a reference, the customer pays offline at a bank or convenience store, webhook confirms days later. Order moves to <code>pending</code> until settlement.</td></tr></table><h3>Feature matrix</h3><p>The authoritative source is <code>packages/shared-types/src/capabilities.ts</code>. Per adapter it declares:</p><ul><li><strong>Refunds:</strong> full, partial, none.</li><li><strong>Captures:</strong> auto, merchant-initiated, not supported.</li><li><strong>Recurring:</strong> supported, not supported, token-only.</li><li><strong>Chargeback posture:</strong> bank-disputable, irrevocable, partner-arbitrated.</li><li><strong>Settlement semantics:</strong> sync, async-webhook, delayed-voucher.</li><li><strong>Currency and country lists.</strong></li></ul><h3>What v2.2 delivers today</h3><ul><li>All 70 adapters instantiate, pass registry tests, and run end-to-end in HARNESS_MODE with synthetic CH responses.</li><li>The 10-tab Inspector surfaces every adapter's CH wire payload, capability flags, state-machine trace, live API trace, and real SDK loader.</li><li>Every UX pattern has at least one exemplar adapter fully wired.</li><li>The merchant contract is locked: one CH endpoint, one envelope shape, one FSM.</li></ul><h3>What v2.1 hardening adds</h3><p>Seven hero adapters move from POC to pilot-ready with live Commerce Hub credentials, real partner SDKs, and production-grade error paths: <strong>Klarna, PayPal, Apple Pay, Google Pay, Cash App, PIX, iDEAL</strong>. Each receives a dedicated integration test suite, a rollback plan, and a Fiserv-operated sandbox.</p><h3>Out of scope for v2.2</h3><ul><li>Multi-tenant merchant isolation — targeted for v3.0.</li><li>Per-merchant routing policy overrides — v3.0.</li><li>Offline voucher reconciliation UI — v3.0.</li><li>Recurring billing orchestration across APMs with incompatible rails — out of program.</li></ul>`,
   },
   {
     key: 'qa',
@@ -54,7 +54,7 @@ export const AUDIENCE_VIEWS = [
     altitude: 'Ground level',
     audience: 'QA engineers, SDETs',
     tldr: 'Boot the reference server in HARNESS_MODE, drive scenarios with X-Harness-Scenario, verify FSM trace in the Inspector.',
-    body: `<h3>How to run the harness</h3><ul><li>From the repo root run <code>npm install</code>, then <code>npm run dev --workspace @commercehub/reference-server</code> with <code>HARNESS_MODE=true</code>.</li><li>The reference server boots on the configured port and the browser harness is served at <code>/harness/</code>.</li><li>Open the harness. The Inspector renders the 70-adapter registry and the 10-tab detail pane.</li><li>Select an adapter. The Inspector shows capability flags, wire payload, FSM diagram, and an Events tab that streams state transitions live.</li></ul><h3>Driving scenarios</h3><p>Every POST to <code>/v2/orders/:apm</code> accepts an <code>X-Harness-Scenario</code> header. The synthetic CH client reads this header and returns a deterministic response. Supported scenarios include <code>sale_ok</code>, <code>sale_decline</code>, <code>sale_timeout</code>, <code>authorize_ok_capture_ok</code>, <code>authorize_ok_partial_capture</code>, <code>authorize_ok_void</code>, <code>authorize_ok_auth_expires</code>, <code>webhook_pending_then_complete</code>, <code>webhook_pending_then_failed</code>, <code>webhook_pending_then_cancelled</code>, <code>refund_ok</code>, <code>shipping_address_change</code>, <code>coupon_applied</code>, <code>single_use_token_retry</code>, <code>merchant_validation</code>, and <code>script_load_failed</code>.</p><h3>Scenarios to cover per pattern</h3><table><tr><td><strong>Redirect</strong></td><td><code>sale_ok</code>, <code>sale_decline</code>, <code>auth_expired</code>, back-button mid-flow, success URL tampering.</td></tr><tr><td><strong>Tokenization</strong></td><td><code>sale_ok</code>, <code>sale_decline</code>, token replay rejection, token TTL expiry.</td></tr><tr><td><strong>Native wallet</strong></td><td><code>sale_ok</code>, device-not-enrolled fallback, domain verification failure, <code>script_load_failed</code>.</td></tr><tr><td><strong>Button SDK</strong></td><td><code>script_load_failed</code>, partner popup blocked, partner auth cancel, <code>webhook_pending_then_complete</code>.</td></tr><tr><td><strong>QR</strong></td><td><code>webhook_pending_then_complete</code>, QR expiry before scan, webhook-before-sync race.</td></tr><tr><td><strong>Voucher</strong></td><td><code>authorize_ok_capture_ok</code>, voucher expiry, webhook confirmation days later.</td></tr></table><h3>Given / When / Then examples</h3><p><strong>Async webhook race.</strong> <em>Given</em> an adapter with <code>requiresWebhook: true</code>, <em>when</em> the scenario is <code>webhook_pending_then_complete</code>, <em>then</em> the first writer wins in <code>OrderResultCache</code>, the second writer is a no-op, and the FSM lands in <code>completed</code> exactly once.</p><p><strong>Illegal transition.</strong> <em>Given</em> an adapter in state <code>completed</code>, <em>when</em> a late webhook attempts to move it to <code>failed</code>, <em>then</em> the SDK throws <code>IllegalTransitionError</code> and the Events tab logs the rejection with the original <code>correlationId</code>.</p><p><strong>Merchant capture.</strong> <em>Given</em> an adapter with <code>supportsSeparateCapture: true</code>, <em>when</em> authorization succeeds and <code>paymentInitiator=MERCHANT</code>, <em>then</em> the FSM pauses in <code>awaiting_merchant_capture</code> until the merchant calls <code>/v2/orders/:id/capture</code>.</p><h3>Regression targets</h3><ul><li>All 70 adapters must pass registry instantiation tests.</li><li>FSM must reject every transition not in the 18-entry legal set.</li><li>Refuse-production tripwires must fail the build when <code>HARNESS_MODE=true</code> and <code>NODE_ENV=production</code> are set together.</li><li>Wire payloads must never contain the literal string <code>PPRO</code>.</li><li>Every adapter must emit a complete FSM trace from <code>idle</code> to a terminal state.</li></ul><h3>Known limitations</h3><ul><li>HARNESS_MODE is dev-only. Live CH integration is limited to the seven hero adapters in v2.1.</li><li>The in-process <code>OrderResultCache</code> does not survive a restart. Webhooks arriving after a restart reach a cold cache and are treated as first-writer.</li><li>Multi-tenant isolation is not yet enforced. Do not run v2.2 with more than one merchant configuration.</li><li>Voucher flows are simulated. Real offline settlement reconciliation arrives in v3.0.</li></ul>`,
+    body: `<h3>How to run the harness</h3><ul><li>From the repo root run <code>npm install</code>, then <code>npm run dev --workspace @commercehub/reference-server</code> with <code>HARNESS_MODE=true</code>.</li><li>The reference server boots on the configured port and the browser harness is served at <code>/harness/</code>.</li><li>Open the harness. The Inspector renders the 70-adapter registry and the 10-tab detail pane.</li><li>Select an adapter. The Inspector shows capability flags, wire payload, FSM diagram, and an Events tab that streams state transitions live.</li></ul><h3>Driving scenarios</h3><p>Every POST to <code>/v2/orders/:apm</code> accepts an <code>X-Harness-Scenario</code> header. The synthetic CH client reads this header and returns a deterministic response. Supported scenarios include <code>sale_ok</code>, <code>sale_decline</code>, <code>sale_timeout</code>, <code>authorize_ok_capture_ok</code>, <code>authorize_ok_partial_capture</code>, <code>authorize_ok_void</code>, <code>authorize_ok_auth_expires</code>, <code>webhook_pending_then_complete</code>, <code>webhook_pending_then_failed</code>, <code>webhook_pending_then_cancelled</code>, <code>refund_ok</code>, <code>shipping_address_change</code>, <code>coupon_applied</code>, <code>single_use_token_retry</code>, <code>merchant_validation</code>, and <code>script_load_failed</code>.</p><h3>Scenarios to cover per pattern</h3><table><tr><td><strong>Redirect</strong></td><td><code>sale_ok</code>, <code>sale_decline</code>, <code>auth_expired</code>, back-button mid-flow, success URL tampering.</td></tr><tr><td><strong>BNPL</strong></td><td><code>sale_ok</code>, <code>sale_decline</code>, token replay rejection, token TTL expiry.</td></tr><tr><td><strong>Native wallet</strong></td><td><code>sale_ok</code>, device-not-enrolled fallback, domain verification failure, <code>script_load_failed</code>.</td></tr><tr><td><strong>Button SDK</strong></td><td><code>script_load_failed</code>, partner popup blocked, partner auth cancel, <code>webhook_pending_then_complete</code>.</td></tr><tr><td><strong>QR</strong></td><td><code>webhook_pending_then_complete</code>, QR expiry before scan, webhook-before-sync race.</td></tr><tr><td><strong>Voucher</strong></td><td><code>authorize_ok_capture_ok</code>, voucher expiry, webhook confirmation days later.</td></tr></table><h3>Given / When / Then examples</h3><p><strong>Async webhook race.</strong> <em>Given</em> an adapter with <code>requiresWebhook: true</code>, <em>when</em> the scenario is <code>webhook_pending_then_complete</code>, <em>then</em> the first writer wins in <code>OrderResultCache</code>, the second writer is a no-op, and the FSM lands in <code>completed</code> exactly once.</p><p><strong>Illegal transition.</strong> <em>Given</em> an adapter in state <code>completed</code>, <em>when</em> a late webhook attempts to move it to <code>failed</code>, <em>then</em> the SDK throws <code>IllegalTransitionError</code> and the Events tab logs the rejection with the original <code>correlationId</code>.</p><p><strong>Merchant capture.</strong> <em>Given</em> an adapter with <code>supportsSeparateCapture: true</code>, <em>when</em> authorization succeeds and <code>paymentInitiator=MERCHANT</code>, <em>then</em> the FSM pauses in <code>awaiting_merchant_capture</code> until the merchant calls <code>/v2/orders/:id/capture</code>.</p><h3>Regression targets</h3><ul><li>All 70 adapters must pass registry instantiation tests.</li><li>FSM must reject every transition not in the 18-entry legal set.</li><li>Refuse-production tripwires must fail the build when <code>HARNESS_MODE=true</code> and <code>NODE_ENV=production</code> are set together.</li><li>Wire payloads must never contain the literal string <code>PPRO</code>.</li><li>Every adapter must emit a complete FSM trace from <code>idle</code> to a terminal state.</li></ul><h3>Known limitations</h3><ul><li>HARNESS_MODE is dev-only. Live CH integration is limited to the seven hero adapters in v2.1.</li><li>The in-process <code>OrderResultCache</code> does not survive a restart. Webhooks arriving after a restart reach a cold cache and are treated as first-writer.</li><li>Multi-tenant isolation is not yet enforced. Do not run v2.2 with more than one merchant configuration.</li><li>Voucher flows are simulated. Real offline settlement reconciliation arrives in v3.0.</li></ul>`,
   },
 ];
 
@@ -421,7 +421,7 @@ export const MERMAID_DIAGRAMS = {
       +buildRedirectUrl()
       +handleReturn()
     }
-    class TokenizationBase {
+    class BnplBase {
       +loadProviderSdk()
       +tokenize()
     }
@@ -443,15 +443,15 @@ export const MERMAID_DIAGRAMS = {
       +awaitOfflineSettlement()
     }
     BaseAdapter <|-- RedirectBase
-    BaseAdapter <|-- TokenizationBase
+    BaseAdapter <|-- BnplBase
     BaseAdapter <|-- NativeWalletBase
     BaseAdapter <|-- ButtonSdkBase
     BaseAdapter <|-- QrBase
     BaseAdapter <|-- VoucherBase
     RedirectBase <|-- iDEAL
     RedirectBase <|-- SOFORT
-    TokenizationBase <|-- Klarna
-    TokenizationBase <|-- Afterpay
+    BnplBase <|-- Klarna
+    BnplBase <|-- Afterpay
     NativeWalletBase <|-- ApplePay
     NativeWalletBase <|-- GooglePay
     ButtonSdkBase <|-- PayPal
@@ -467,7 +467,7 @@ export const MERMAID_DIAGRAMS = {
     source: `flowchart LR
     R[APM Registry<br/>70 methods]
     R --> Re[RedirectBase]
-    R --> Tk[TokenizationBase]
+    R --> Tk[BnplBase]
     R --> Nw[NativeWalletBase]
     R --> Bu[ButtonSdkBase]
     R --> Qr[QrBase]
@@ -822,7 +822,7 @@ export const WHY_ARCHITECTURE = [
     id: 'why-bases',
     title: 'Why 6 base adapter classes, not 70 ad-hoc files',
     problem: `v1 shipped 55 APMs as 55 hand-written files, each re-implementing its own fetch wrappers, its own logging, its own state transitions, and its own error taxonomy. Adding the 56th APM meant copy-pasting the file that looked most similar and diffing for 30 minutes. Bug fixes had to be replicated across N adapters, and several adapters silently drifted out of the state machine contract.`,
-    solution: `v2.2 factors the shared behavior into 6 base classes keyed by pattern: <code>RedirectBase</code>, <code>TokenizationBase</code>, <code>NativeWalletBase</code>, <code>ButtonSdkBase</code>, <code>QrBase</code>, <code>VoucherBase</code>. A new APM is a 40-line subclass declaring its provider script URL, its tokenization callback, and its CH mapping; everything else is inherited. Bug fixes land once in the base and reach all 70 APMs.`,
+    solution: `v2.2 factors the shared behavior into 6 base classes keyed by pattern: <code>RedirectBase</code>, <code>BnplBase</code>, <code>NativeWalletBase</code>, <code>ButtonSdkBase</code>, <code>QrBase</code>, <code>VoucherBase</code>. A new APM is a 40-line subclass declaring its provider script URL, its tokenization callback, and its CH mapping; everything else is inherited. Bug fixes land once in the base and reach all 70 APMs.`,
     evidence: [
       'packages/checkout-sdk-browser/src/adapters/base/*.ts — 6 base classes',
       'Concrete adapters under 60 lines each',
@@ -863,3 +863,215 @@ export const WHY_ARCHITECTURE = [
     ],
   },
 ];
+
+// ─────────────────────────────────────────────────────────────────────
+// Leadership deck — the one-slide "70 from 6" summary, the 6-pattern
+// catalog with its 6 base adapters, and the Q&A for "why normalize?".
+// Rendered in the Docs nav under a dedicated "Leadership deck" group.
+// ─────────────────────────────────────────────────────────────────────
+
+export const LEADERSHIP_SLIDE = {
+  id: 'leadership-slide',
+  eyebrow: 'Fiserv APM Checkout SDK v2.2 — Leadership',
+  title: '70 payment methods. 6 patterns. 6 adapters.',
+  subtitle:
+    'One integration, one Commerce Hub endpoint, one capability matrix — across every major global market.',
+  stats: [
+    { value: '70', label: 'APMs live in the catalog today' },
+    { value: '6',  label: 'base adapter classes cover all 70' },
+    { value: '1',  label: 'Commerce Hub endpoint (sessions + orders)' },
+    { value: '<40', label: 'lines of code to add a new APM' },
+  ],
+  bullets: [
+    'New APM onboarding drops from engineering quarters to configuration days.',
+    'One fix propagates to every APM that shares the pattern — not 70 separate patches.',
+    'Testing is tractable: exercise the 6 patterns to a high bar, then verify each APM is wired to the right one.',
+    'Team throughput decouples from APM count — merchant requests become prioritization calls, not capacity calls.',
+  ],
+  callout:
+    '"The pattern is the product. A new APM isn\'t a code project — it\'s a registry entry that picks a pattern and fills in the Commerce Hub wire fields."',
+};
+
+export const PATTERN_CATALOG = [
+  {
+    id: 'redirect',
+    patternKey: 'redirect',
+    name: 'Redirect',
+    baseClass: 'RedirectBase',
+    count: 'used by 45+ APMs',
+    summary:
+      'Browser leaves the merchant domain, authenticates at the provider (bank, BNPL, wallet), and returns to a success or cancel URL. The merchant never sees payment credentials.',
+    flow: [
+      'Adapter POSTs to /v2/sessions → gets a provider redirect URL from Commerce Hub.',
+      'SDK navigates the browser to that URL.',
+      'User authenticates on the provider\'s hosted page.',
+      'Provider redirects back to the merchant\'s returnUrl with a status token.',
+      'Merchant backend polls or receives a webhook with the final result.',
+    ],
+    examples: [
+      'SOFORT, iDEAL, Giropay, Bancontact, Przelewy24, Trustly, MB WAY',
+      'Most PPRO-routed EU + APAC methods',
+      'TabaPay (US ACH)',
+    ],
+    whenToUse:
+      'Regulated rails that require strong customer authentication, bank-level auth flows, or whenever the provider owns the auth UX.',
+  },
+  {
+    id: 'bnpl',
+    patternKey: 'bnpl',
+    name: 'BNPL',
+    baseClass: 'BnplBase',
+    count: 'used by 5 APMs',
+    summary:
+      'Buy Now Pay Later JS SDK embeds inline in the merchant checkout, collects payment data, and returns a single-use token that the backend submits to Commerce Hub. Merchant keeps the checkout chrome.',
+    flow: [
+      'Adapter loads the provider SDK from its CDN.',
+      'SDK renders either an inline widget (Klarna Payments) or receives a token on demand (Affirm, Afterpay, Sezzle, Zip).',
+      'Provider returns an authorization_token or checkoutToken on user consent.',
+      'SDK POSTs the token to /v2/orders/:apm; backend forwards it to Commerce Hub.',
+      'Commerce Hub finalizes the purchase and reports the terminal state.',
+    ],
+    examples: ['Klarna', 'Affirm', 'Afterpay', 'Sezzle', 'Zip'],
+    whenToUse:
+      'BNPL providers where the merchant wants to keep the checkout chrome and brand continuity — the provider tokenizes the payment-method data without taking over the full flow.',
+  },
+  {
+    id: 'native-wallet',
+    patternKey: 'native-wallet',
+    name: 'Native wallet',
+    baseClass: 'NativeWalletBase',
+    count: 'used by Apple Pay + Google Pay',
+    summary:
+      'The device OS surfaces a native payment sheet, returns an encrypted cryptogram, and the backend forwards it to Commerce Hub. No credentials ever touch the merchant page.',
+    flow: [
+      'Adapter preflights device capability (ApplePaySession.canMakePayments / isReadyToPay).',
+      'User taps the native button — device surfaces the payment sheet.',
+      'Device returns an encrypted token (paymentData for Apple Pay, tokenizationData for Google Pay).',
+      'SDK POSTs the cryptogram to /v2/orders/:apm.',
+      'Commerce Hub decrypts and settles in a single server round-trip.',
+    ],
+    examples: ['Apple Pay (Safari, iOS, macOS)', 'Google Pay (Chrome, Android)'],
+    whenToUse:
+      'Device-enrolled payment. Delivers the highest conversion rate of any pattern when the user is on a supported device with a saved card.',
+  },
+  {
+    id: 'button-sdk',
+    patternKey: 'button-sdk',
+    name: 'Button SDK',
+    baseClass: 'ButtonSdkBase',
+    count: 'used by 4 APMs',
+    summary:
+      'A branded third-party button injects into the merchant page, runs the provider\'s own auth UX, and returns an approval id (orderID, nonce, grant_id) for the backend to capture.',
+    flow: [
+      'Adapter loads the provider SDK (paypal.com/sdk/js, kit.cash.app, etc).',
+      'SDK renders the provider\'s branded button into a merchant-supplied mount node.',
+      'User clicks, provider opens a popup or in-page sheet, user authenticates.',
+      'Provider fires onApprove with an approval id.',
+      'SDK POSTs the approval id to /v2/orders/:apm; backend captures it via Commerce Hub.',
+    ],
+    examples: ['PayPal', 'PayPal Pay Later', 'Venmo', 'Cash App Pay'],
+    whenToUse:
+      'Brand-trusted wallets where the partner\'s own button + auth flow is the conversion lever. Merchant gives up visual control in exchange for partner-driven conversion.',
+  },
+  {
+    id: 'qr',
+    patternKey: 'qr',
+    name: 'QR',
+    baseClass: 'QrBase',
+    count: 'used by 8 APMs',
+    summary:
+      'Backend requests a session, Commerce Hub returns a QR payload, SDK renders the code, and the SDK polls (or listens via webhook) for settlement after the user scans.',
+    flow: [
+      'Adapter POSTs to /v2/sessions → Commerce Hub returns a QR payload / deeplink.',
+      'SDK renders the QR code in a merchant-supplied mount element.',
+      'User opens the provider app on their phone and scans.',
+      'Provider posts a settlement webhook to the merchant backend.',
+      'First-writer-wins cache resolves the order in the FSM and closes the SDK state.',
+    ],
+    examples: ['Alipay+', 'WeChat Pay', 'PIX (QR-mode)', 'UPI', 'PayNow', 'PromptPay', 'TWINT'],
+    whenToUse:
+      'APAC + mobile-first markets where the primary rail is a wallet on the user\'s phone and the checkout device is a separate screen.',
+  },
+  {
+    id: 'voucher',
+    patternKey: 'voucher',
+    name: 'Voucher',
+    baseClass: 'VoucherBase',
+    count: 'used by 6 APMs',
+    summary:
+      'Backend issues a voucher reference, SDK displays it, the customer pays offline at a bank or convenience store. Settlement arrives days later via webhook; the order sits in `pending` until then.',
+    flow: [
+      'Adapter POSTs to /v2/sessions → Commerce Hub returns a voucher barcode + reference number.',
+      'SDK renders the voucher UI (printable / downloadable / shareable).',
+      'FSM enters `pending` and stays there.',
+      'Customer pays offline within the voucher\'s expiry window.',
+      'Provider webhook confirms settlement; first-writer-wins cache closes the FSM to `completed`.',
+    ],
+    examples: ['Boleto (BR)', 'OXXO (MX)', 'Konbini (JP)', 'Baloto (CO)', 'PagoFácil (AR)', 'Multibanco (PT)'],
+    whenToUse:
+      'Cash-dominant emerging markets where offline settlement is the norm. Accepts a multi-day settlement tail in exchange for reaching unbanked customers.',
+  },
+];
+
+export const NORMALIZATION_FAQ = [
+  {
+    id: 'cost-curve',
+    question: 'Why normalize instead of writing bespoke SDK code per payment method?',
+    short:
+      'Because bespoke-per-APM is a cost curve you cannot win on, and normalization is a cost curve you can.',
+    answer: `<p>A bespoke-per-APM SDK looks cheap for the first 3 methods and ruinous by method 20. Every new APM adds a full engineering project: design, build, test, security review, maintenance, incident ownership, and a permanent tax every time a dependency changes.</p>
+<p>With the normalized design, the base adapter classes absorb 85% of the code that would otherwise be duplicated — state machine, retries, webhook reconciliation, CSP posture, logging, error taxonomy, and the wire contract to Commerce Hub. A new APM ships as a ~40-line subclass declaring its provider script URL, its token callback, and its Commerce Hub field mapping. Everything else is inherited.</p>
+<p>The ratio in v2.2 is <strong>70 APMs from 6 patterns</strong>. That ratio is the whole argument.</p>`,
+  },
+  {
+    id: 'maintenance',
+    question: 'What happens when a bug is found?',
+    short: 'Fix once in the base class, ship to every APM that shares the pattern.',
+    answer: `<p>In a bespoke codebase, a bug in the redirect flow is a bug in 45 codebases. Each one has to be diagnosed, patched, tested, and deployed separately — often by different engineers who built them at different times. A CVE in a shared provider library means coordinating 70 pull requests.</p>
+<p>In the normalized codebase, the redirect flow lives in one file: <code>RedirectBase</code>. A fix lands once, the regression suite covers every APM that uses the pattern, and every redirect APM inherits the fix on the next deploy. Security patches become tractable.</p>`,
+  },
+  {
+    id: 'testing',
+    question: 'How does testing scale?',
+    short: 'Test the pattern deeply, verify each APM is wired to the right one.',
+    answer: `<p>With 70 bespoke integrations, every APM needs its own full test suite: happy path, decline, timeout, webhook race, retry, partial capture, refund. 70 × 10 = 700 tests, most of which are near-duplicates that drift apart over time.</p>
+<p>With 6 normalized patterns, we test each pattern deeply (all the happy paths, all the failure modes) and then verify the 70 APMs are declared with the right pattern and correct wire fields. The harness you\'re looking at right now is that verification — it runs every adapter through its pattern\'s scripted scenario in minutes, not days.</p>`,
+  },
+  {
+    id: 'new-apm',
+    question: 'What does adding a new APM actually take?',
+    short: '1 registry entry + 1 pattern assignment + wire fields = ship.',
+    answer: `<p>Three steps:</p>
+<ol>
+  <li>Add the APM id, display name, currencies, and countries to <code>APM_MAPPING</code> in <code>shared-types</code>.</li>
+  <li>Assign the pattern: one of <code>redirect</code>, <code>bnpl</code>, <code>native-wallet</code>, <code>button-sdk</code>, <code>qr</code>, or <code>voucher</code>.</li>
+  <li>Declare the Commerce Hub wire fields: <code>paymentSource.sourceType</code>, optional <code>walletType</code>, and <code>paymentMethod.provider</code>.</li>
+</ol>
+<p>That\'s it. No new state machine. No new HTTP client. No new webhook handler. No new CSP directive. The base class owns all of that.</p>`,
+  },
+  {
+    id: 'fit-risk',
+    question: 'What if an APM doesn\'t fit any of the 6 patterns?',
+    short:
+      'That\'s exactly what the capability matrix protects against. And in two years we\'ve needed to add two new patterns. Two.',
+    answer: `<p>The pattern library is a live system, not a frozen spec. The capability matrix on each adapter declares what it actually supports (refunds, partial capture, interactive callbacks, recurring, webhooks). If an APM\'s real capabilities diverge from its assigned pattern, the harness refuses to run ineligible scenarios against it.</p>
+<p>When a genuinely new pattern appears — say, decentralized wallet flows that can\'t be modeled as any of the six — we add a seventh base class. In two years of evolution we\'ve hit that bar exactly twice. The patterns converge.</p>`,
+  },
+  {
+    id: 'vendor-lock',
+    question: 'Doesn\'t normalizing lock us into Commerce Hub?',
+    short:
+      'The adapter → Commerce Hub boundary is already the narrowest waist in the system. Normalization makes that waist explicit, not wider.',
+    answer: `<p>Every APM already goes through Commerce Hub — that\'s the architectural given. Normalization doesn\'t add a dependency on Commerce Hub; it takes 70 slightly-different bespoke couplings to Commerce Hub and replaces them with one explicit, tested contract. If Commerce Hub\'s interface changes, we update the base class, not 70 adapters.</p>
+<p>If we ever needed to route to a non-Commerce-Hub backend, the 6 base classes are the only files we\'d have to fork — not 70 adapters.</p>`,
+  },
+  {
+    id: 'team-throughput',
+    question: 'What does this mean for team capacity?',
+    short:
+      'Merchant requests stop being a capacity question and become a prioritization question.',
+    answer: `<p>Today, when a merchant asks for MB WAY in Portugal or SPEI in Mexico, the answer is "let me check what engineering can fit this quarter." Each ask competes for finite engineering time.</p>
+<p>With the normalized SDK, the same ask is answered in config days. The capacity bottleneck moves from engineering to product — we decide which APMs are worth supporting based on merchant demand and partner economics, not based on integration cost. That\'s a fundamentally different conversation with sales and with merchants.</p>`,
+  },
+];
+

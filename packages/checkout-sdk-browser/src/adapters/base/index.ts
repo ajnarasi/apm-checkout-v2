@@ -23,7 +23,7 @@ export { VoucherAdapterBase } from './voucher-base.js';
 
 export type {
   ProviderToken,
-  TokenizationToken,
+  BnplToken,
   NativeWalletToken,
   ButtonSdkToken,
   RedirectToken,

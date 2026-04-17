@@ -43,6 +43,17 @@ export function buildApp(ctx: AppContext): Express {
   app.use(correlationMiddleware);
   app.use(corsMiddleware(ctx.env.corsOrigins));
 
+  // IMPORTANT: the v1-api reverse proxy MUST be mounted BEFORE express.json().
+  // The proxy works by streaming `req` directly into the upstream request via
+  // `req.pipe(upstreamReq)`. If express.json() runs first, it drains the body
+  // stream into req.body, leaving nothing for the pipe — the upstream v1 server
+  // receives an empty `{}` body and crashes downstream when handlers read
+  // missing fields. Gated on harnessMode, same condition as the rest of the
+  // /v1 mounts further down.
+  if (ctx.env.harnessMode) {
+    app.use('/v1-api', createV1ApiProxy());
+  }
+
   // Webhooks need raw body for signature verification
   app.use(
     '/v2/webhooks',
@@ -109,8 +120,8 @@ export function buildApp(ctx: AppContext): Express {
     // v2.2 harness via same-origin static + reverse-proxy.
     //   /v1/*      → static serve from test-harness/public/ with HTML rewrite
     //   /v1-api/*  → reverse proxy to http://localhost:3847/api/*
+    //              (mounted ABOVE express.json() — see comment further up)
     // The v1 server is auto-spawned as a child process if not already running.
-    app.use('/v1-api', createV1ApiProxy());
     app.use('/v1', createV1StaticHandler());
 
     // Kick off the v1 spawner asynchronously. Doesn't block boot — V1 mode

@@ -13,8 +13,8 @@
  */
 
 /** BNPL JS SDK token (Klarna, Affirm, Afterpay, Sezzle, Zip). */
-export interface TokenizationToken {
-  kind: 'tokenization';
+export interface BnplToken {
+  kind: 'bnpl';
   /** Provider id matching the AdapterCapabilities. */
   provider: 'klarna' | 'affirm' | 'afterpay' | 'sezzle' | 'zip';
   /** Provider-specific token field. */
@@ -75,7 +75,7 @@ export interface VoucherToken {
 }
 
 export type ProviderToken =
-  | TokenizationToken
+  | BnplToken
   | NativeWalletToken
   | ButtonSdkToken
   | RedirectToken

@@ -1,0 +1,420 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "APM Checkout SDK — Test Harness API",
+    "version": "1.0.0",
+    "description": "Backend API for the APM Checkout SDK test harness. Proxies API calls to sandbox payment providers (Klarna, CashApp, PPRO) and provides mock endpoints for other APMs."
+  },
+  "servers": [
+    { "url": "http://localhost:3847", "description": "Local test harness" }
+  ],
+  "paths": {
+    "/api/klarna/session": {
+      "post": {
+        "summary": "Create Klarna payment session",
+        "tags": ["Klarna"],
+        "description": "Creates a Klarna Payments session via the playground sandbox. Returns a client_token for widget initialization.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": { "type": "number", "example": 49.99 },
+                  "currency": { "type": "string", "example": "USD" },
+                  "taxAmount": { "type": "number", "example": 0 },
+                  "merchantReference": { "type": "string", "example": "SDK-1234567890" },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "itemName": { "type": "string" },
+                        "quantity": { "type": "integer" },
+                        "unitPrice": { "type": "number" },
+                        "grossAmount": { "type": "number" },
+                        "taxAmount": { "type": "number" }
+                      }
+                    }
+                  },
+                  "shippingAddress": { "type": "object" },
+                  "billingAddress": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "paymentMethod": { "type": "object" },
+                    "order": { "type": "object" },
+                    "_raw": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/klarna/order": {
+      "post": {
+        "summary": "Place Klarna order",
+        "tags": ["Klarna"],
+        "description": "Places an order after Klarna widget authorization. Uses the authorization_token from the widget.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "authorizationToken": { "type": "string" },
+                  "orderAmount": { "type": "integer", "description": "Amount in minor units (cents)" },
+                  "orderTaxAmount": { "type": "integer" },
+                  "orderLines": { "type": "array", "items": { "type": "object" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Order placed" }
+        }
+      }
+    },
+    "/api/klarna/capture": {
+      "post": {
+        "summary": "Capture Klarna order",
+        "tags": ["Klarna"],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "orderId": { "type": "string" }, "amount": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "Captured" } }
+      }
+    },
+    "/api/klarna/refund": {
+      "post": {
+        "summary": "Refund Klarna order",
+        "tags": ["Klarna"],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "orderId": { "type": "string" }, "amount": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "Refunded" } }
+      }
+    },
+    "/api/klarna/order/{id}": {
+      "get": {
+        "summary": "Get Klarna order status",
+        "tags": ["Klarna"],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Order details" } }
+      }
+    },
+    "/api/cashapp/request": {
+      "post": {
+        "summary": "Create CashApp Customer Request",
+        "tags": ["CashApp"],
+        "description": "Creates a Customer Request via CashApp sandbox. Returns a QR code URL for payment.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": { "type": "number", "example": 49.99 },
+                  "currency": { "type": "string", "example": "USD" },
+                  "merchantReference": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer request created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": { "type": "string" },
+                    "qrCodeUrl": { "type": "string" },
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cashapp/request/{id}": {
+      "get": {
+        "summary": "Poll CashApp request status",
+        "tags": ["CashApp"],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Request status" } }
+      }
+    },
+    "/api/cashapp/payment": {
+      "post": {
+        "summary": "Create CashApp payment",
+        "tags": ["CashApp"],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "Payment created" } }
+      }
+    },
+    "/api/ppro/charge": {
+      "post": {
+        "summary": "Create PPRO payment charge",
+        "tags": ["PPRO"],
+        "description": "Creates a payment charge via PPRO for 39 redirect-based APMs. Routes to the appropriate APM based on paymentMethod parameter.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "paymentMethod": { "type": "string", "example": "IDEAL" },
+                  "amount": { "type": "number" },
+                  "currency": { "type": "string" },
+                  "country": { "type": "string" },
+                  "merchantReference": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Charge created with redirect URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "chargeId": { "type": "string" },
+                    "redirectUrl": { "type": "string" },
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/paypal/order": {
+      "post": {
+        "summary": "Create PayPal order",
+        "tags": ["PayPal"],
+        "description": "Creates a PayPal order (mock). Returns an approve link for redirect.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": { "type": "string", "example": "49.99" },
+                  "currency": { "type": "string", "example": "USD" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string" },
+                    "links": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/paypal/paylater-order": {
+      "post": {
+        "summary": "Create PayPal Pay Later order",
+        "tags": ["PayPal"],
+        "description": "Creates a PayPal Pay Later (BNPL) order. Same sandbox as PayPal with paylater funding source.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": { "type": "string", "example": "49.99" },
+                  "currency": { "type": "string", "example": "USD" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pay Later order created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string" },
+                    "paymentMethod": { "type": "string", "example": "paylater" },
+                    "links": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/zepto/agreement": {
+      "post": {
+        "summary": "Create Zepto PayTo agreement",
+        "tags": ["Zepto"],
+        "description": "Creates a PayTo agreement via Zepto sandbox. Returns an authorization URL for bank redirect.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": { "type": "integer", "description": "Amount in cents", "example": 4999 },
+                  "currency": { "type": "string", "example": "AUD" },
+                  "merchantOrderId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "PayTo agreement created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string", "example": "pending_authorization" },
+                    "paymentMethod": { "type": "string", "example": "payto" },
+                    "_raw": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/applepay/session": {
+      "post": {
+        "summary": "Create Apple Pay session",
+        "tags": ["Apple Pay"],
+        "description": "Initiates Apple Pay merchant validation. Uses merchant.app.vercel.hottopic certificate.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "validationURL": { "type": "string" },
+                  "domainName": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Session created" } }
+      }
+    },
+    "/api/googlepay/process": {
+      "post": {
+        "summary": "Process Google Pay token",
+        "tags": ["Google Pay"],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "amount": { "type": "number" }, "currency": { "type": "string" }, "paymentToken": { "type": "object" } } } } } },
+        "responses": { "200": { "description": "Payment processed" } }
+      }
+    },
+    "/api/afterpay/checkout": {
+      "post": {
+        "summary": "Create Afterpay checkout",
+        "tags": ["Afterpay"],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "amount": { "type": "number" }, "currency": { "type": "string" }, "returnUrls": { "type": "object" } } } } } },
+        "responses": { "200": { "description": "Checkout created" } }
+      }
+    },
+    "/api/affirm/checkout": {
+      "post": {
+        "summary": "Create Affirm checkout",
+        "tags": ["Affirm"],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "amount": { "type": "number" }, "currency": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Checkout created" } }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health check",
+        "tags": ["System"],
+        "description": "Returns status of all provider connections.",
+        "responses": {
+          "200": {
+            "description": "Health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "providers": { "type": "object" },
+                    "timestamp": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/test-log": {
+      "get": {
+        "summary": "Get test results",
+        "tags": ["System"],
+        "responses": { "200": { "description": "Test log with summary" } }
+      }
+    }
+  },
+  "tags": [
+    { "name": "Klarna", "description": "Klarna Payments — Server BNPL (Live Sandbox)" },
+    { "name": "CashApp", "description": "CashApp Pay — Redirect Wallet (Live Sandbox)" },
+    { "name": "PPRO", "description": "PPRO Gateway — 39 redirect APMs (Live Sandbox)" },
+    { "name": "PayPal", "description": "PayPal — Redirect Wallet + Pay Later BNPL (Mock)" },
+    { "name": "Zepto", "description": "Zepto — Bank Redirect / PayTo (AU, Mock)" },
+    { "name": "Apple Pay", "description": "Apple Pay — Native Wallet (Live Sandbox)" },
+    { "name": "Google Pay", "description": "Google Pay — Native Wallet (TEST Mode)" },
+    { "name": "Afterpay", "description": "Afterpay — Server BNPL (Mock)" },
+    { "name": "Affirm", "description": "Affirm — Server BNPL (Mock)" },
+    { "name": "System", "description": "Health check and test logging" }
+  ]
+}

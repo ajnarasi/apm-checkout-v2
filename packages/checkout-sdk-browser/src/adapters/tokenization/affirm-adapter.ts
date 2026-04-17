@@ -38,7 +38,7 @@ import {
 } from '@commercehub/shared-types';
 
 import { TokenizationAdapterBase } from '../base/tokenization-base.js';
-import type { TokenizationToken } from '../base/provider-token.js';
+import type { BnplToken } from '../base/provider-token.js';
 import { loadScript, ScriptLoadError } from '../../core/load-script.js';
 
 // ──────────────────── Affirm type definitions ────────────────────
@@ -115,10 +115,10 @@ export class AffirmAdapter extends TokenizationAdapterBase {
   readonly pattern = 'server-bnpl' as const;
 
   static readonly capabilities: AdapterCapabilities = {
-    pattern: 'tokenization',
+    pattern: 'bnpl',
     displayName: 'Affirm',
     region: 'North America',
-    callbacks: defaultCallbacks('tokenization'),
+    callbacks: defaultCallbacks('bnpl'),
     sdk: {
       requiresClientScript: true,
       cdnUrl: AFFIRM_SDK_URL_PROD,
@@ -175,7 +175,7 @@ export class AffirmAdapter extends TokenizationAdapterBase {
   }
 
   // STEP 2-4: Call affirm.checkout + affirm.checkout.open and await onSuccess
-  protected override async tokenize(): Promise<TokenizationToken> {
+  protected override async tokenize(): Promise<BnplToken> {
     if (!window.affirm?.checkout) {
       throw new Error('Affirm SDK not loaded');
     }
@@ -201,11 +201,11 @@ export class AffirmAdapter extends TokenizationAdapterBase {
 
     window.affirm.checkout(payload);
 
-    return new Promise<TokenizationToken>((resolve, reject) => {
+    return new Promise<BnplToken>((resolve, reject) => {
       window.affirm!.checkout.open({
         onSuccess: (data) => {
           resolve({
-            kind: 'tokenization',
+            kind: 'bnpl',
             provider: 'affirm',
             payload: {
               checkoutToken: data.checkout_token,

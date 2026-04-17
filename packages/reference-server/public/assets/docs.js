@@ -12,7 +12,16 @@
  * a base class filters the child chips to APMs that use that base.
  */
 
-import { AUDIENCE_VIEWS, IMPLEMENTATION_STEPS, MERMAID_DIAGRAMS, HERO_COOKBOOKS, WHY_ARCHITECTURE } from './docs-content.js';
+import {
+  AUDIENCE_VIEWS,
+  IMPLEMENTATION_STEPS,
+  MERMAID_DIAGRAMS,
+  HERO_COOKBOOKS,
+  WHY_ARCHITECTURE,
+  LEADERSHIP_SLIDE,
+  PATTERN_CATALOG,
+  NORMALIZATION_FAQ,
+} from './docs-content.js';
 import { APM_REQUIREMENTS, REQUIREMENTS_STATS, getApmRequirements, PATTERN_COLORS } from './apm-requirements.js';
 import { renderStateMachineViz } from './state-machine-viz.js';
 import { escapeHtml } from './catalog.js';
@@ -59,7 +68,7 @@ async function loadMermaid() {
 // Adapter → base class lookup derived from the pattern field.
 const PATTERN_TO_BASE = {
   redirect: 'RedirectBase',
-  tokenization: 'TokenizationBase',
+  tokenization: 'BnplBase',
   'native-wallet': 'NativeWalletBase',
   'button-sdk': 'ButtonSdkBase',
   qr: 'QrBase',
@@ -68,7 +77,7 @@ const PATTERN_TO_BASE = {
 
 const BASE_CLASSES = [
   { id: 'RedirectBase',     title: 'RedirectBase',      pattern: 'redirect' },
-  { id: 'TokenizationBase', title: 'TokenizationBase',  pattern: 'tokenization' },
+  { id: 'BnplBase', title: 'BnplBase',  pattern: 'bnpl' },
   { id: 'NativeWalletBase', title: 'NativeWalletBase',  pattern: 'native-wallet' },
   { id: 'ButtonSdkBase',    title: 'ButtonSdkBase',     pattern: 'button-sdk' },
   { id: 'QrBase',           title: 'QrBase',            pattern: 'qr' },
@@ -97,6 +106,11 @@ export class DocsView {
     this.root.innerHTML = `
       <div class="docs-layout">
         <aside class="docs-nav" aria-label="Docs navigation">
+          <div class="docs-nav__group">Leadership deck</div>
+          <button class="docs-nav__link" data-section="leadership-slide" type="button">70 from 6 — opening slide</button>
+          <button class="docs-nav__link" data-section="pattern-catalog" type="button">The 6 patterns &amp; 6 adapters</button>
+          <button class="docs-nav__link" data-section="normalization-faq" type="button">FAQ: why normalize?</button>
+
           <div class="docs-nav__group">Why this architecture</div>
           <button class="docs-nav__link is-active" data-section="why-overview" type="button">The "why" — 6 design decisions</button>
           ${WHY_ARCHITECTURE.map((w) => `<button class="docs-nav__link" data-section="why:${w.id}" type="button">${escapeHtml(w.title)}</button>`).join('')}
@@ -154,6 +168,107 @@ export class DocsView {
   async renderSection(key) {
     const main = this.root.querySelector('[data-docs-main]');
     if (!main) return;
+
+    // ─── Leadership deck: the one-slide "70 from 6" summary ───
+    if (key === 'leadership-slide') {
+      const s = LEADERSHIP_SLIDE;
+      main.innerHTML = `
+        <article class="slide">
+          <header class="slide__head">
+            <div class="kicker">${escapeHtml(s.eyebrow)}</div>
+            <h1 class="slide__title">${escapeHtml(s.title)}</h1>
+            <p class="slide__subtitle">${escapeHtml(s.subtitle)}</p>
+          </header>
+          <div class="slide__stats">
+            ${s.stats
+              .map(
+                (stat) => `
+              <div class="slide__stat">
+                <div class="slide__stat-value">${escapeHtml(stat.value)}</div>
+                <div class="slide__stat-label">${escapeHtml(stat.label)}</div>
+              </div>`
+              )
+              .join('')}
+          </div>
+          <ul class="slide__bullets">
+            ${s.bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join('')}
+          </ul>
+          <blockquote class="slide__callout">${escapeHtml(s.callout)}</blockquote>
+          <footer class="slide__footer">
+            <button class="btn btn--outline btn--sm" data-section="pattern-catalog" type="button">See the 6 patterns →</button>
+            <button class="btn btn--outline btn--sm" data-section="normalization-faq" type="button">FAQ: why normalize? →</button>
+          </footer>
+        </article>
+      `;
+      for (const btn of main.querySelectorAll('[data-section]')) {
+        btn.addEventListener('click', () => this.switchTo(btn.dataset.section));
+      }
+      return;
+    }
+
+    // ─── Leadership deck: the 6 patterns + 6 base adapters catalog ───
+    if (key === 'pattern-catalog') {
+      main.innerHTML = `
+        <div class="kicker">Leadership deck</div>
+        <h1>The 6 patterns — and the 6 base adapters that serve all 70 APMs</h1>
+        <div class="docs-tldr">Every APM in v2.2 extends exactly one of these six base classes. The base owns the state machine, retries, webhook reconciliation, CSP posture, logging, error taxonomy, and the Commerce Hub wire contract. Concrete adapters only declare the per-provider bits: CDN URL, token callback, and CH field mapping.</div>
+        <div class="pattern-catalog">
+          ${PATTERN_CATALOG.map(
+            (p) => `
+            <article class="pattern-card" data-pattern="${escapeHtml(p.patternKey)}">
+              <header class="pattern-card__head">
+                <div class="pattern-card__title-row">
+                  <h2>${escapeHtml(p.name)}</h2>
+                  <code class="pattern-card__base">${escapeHtml(p.baseClass)}</code>
+                </div>
+                <div class="pattern-card__count">${escapeHtml(p.count)}</div>
+              </header>
+              <p class="pattern-card__summary">${escapeHtml(p.summary)}</p>
+              <section class="pattern-card__section">
+                <div class="kicker">Flow</div>
+                <ol class="pattern-card__flow">
+                  ${p.flow.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}
+                </ol>
+              </section>
+              <section class="pattern-card__section">
+                <div class="kicker">APMs using this pattern</div>
+                <ul class="pattern-card__examples">
+                  ${p.examples.map((ex) => `<li>${escapeHtml(ex)}</li>`).join('')}
+                </ul>
+              </section>
+              <section class="pattern-card__section pattern-card__when">
+                <div class="kicker">When to use</div>
+                <p>${escapeHtml(p.whenToUse)}</p>
+              </section>
+            </article>
+          `
+          ).join('')}
+        </div>
+      `;
+      return;
+    }
+
+    // ─── Leadership deck: FAQ on normalization vs bespoke ───
+    if (key === 'normalization-faq') {
+      main.innerHTML = `
+        <div class="kicker">Leadership deck</div>
+        <h1>FAQ — why normalize payment patterns?</h1>
+        <div class="docs-tldr">Expect these questions in the demo. Lead with the short answer, expand only if pressed.</div>
+        <div class="faq-list">
+          ${NORMALIZATION_FAQ.map(
+            (q) => `
+            <details class="faq-item" id="faq-${escapeHtml(q.id)}">
+              <summary>
+                <span class="faq-item__q">${escapeHtml(q.question)}</span>
+                <span class="faq-item__short">${escapeHtml(q.short)}</span>
+              </summary>
+              <div class="faq-item__answer">${q.answer}</div>
+            </details>`
+          ).join('')}
+        </div>
+      `;
+      return;
+    }
 
     // ─── Why this architecture: overview (6 cards) ───
     if (key === 'why-overview') {
@@ -220,7 +335,7 @@ export class DocsView {
         // Derive boolean cells from requirements + serverParams heuristics
         const hasRedirect = r.returnUrlRequired;
         const hasWebhook = r.webhookRequired;
-        const isBNPL = r.pattern === 'tokenization';
+        const isBNPL = r.pattern === 'bnpl';
         const isWallet = r.pattern === 'native-wallet';
         const isButtonSdk = r.pattern === 'button-sdk';
         return {

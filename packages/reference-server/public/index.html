@@ -272,6 +272,45 @@
               </label>
             </div>
 
+            <!--
+              Sandbox credentials section — only visible when the selected APM
+              is Klarna / CashApp / PPRO-routed. Pre-filled from
+              GET /v2/harness/sandbox-defaults and used by the
+              "Run real sandbox call" button (POST /v2/harness/sandbox-call).
+            -->
+            <section class="runner__creds" data-runner-creds hidden>
+              <header class="runner__creds-head">
+                <div>
+                  <span class="kicker">Sandbox credentials</span>
+                  <p class="muted runner__creds-sub" data-creds-sub>
+                    Pre-filled from server. Edit to test alternate sandbox keys.
+                  </p>
+                </div>
+                <div class="runner__creds-actions">
+                  <button type="button" class="btn btn--ghost btn--sm" data-creds-reload>
+                    Reset to defaults
+                  </button>
+                  <button type="button" class="btn btn--outline btn--sm" data-creds-toggle aria-expanded="true">
+                    Hide
+                  </button>
+                </div>
+              </header>
+              <div class="runner__creds-fields" data-runner-creds-fields></div>
+              <div class="runner__creds-actions runner__creds-actions--run">
+                <button type="button" class="btn btn--primary" id="btn-sandbox-run" data-sandbox-run>
+                  ▶ Run real sandbox call
+                </button>
+                <span class="runner__creds-hint" data-creds-action-hint></span>
+              </div>
+              <div class="runner__creds-result" data-creds-result hidden>
+                <div class="runner__creds-result-head">
+                  <span class="kicker">Sandbox response</span>
+                  <span class="badge" data-creds-status>idle</span>
+                </div>
+                <pre class="code-block" data-creds-result-body></pre>
+              </div>
+            </section>
+
             <div class="runner__scenarios" data-runner-scenarios>
               <!-- scenario buttons grouped by category -->
             </div>

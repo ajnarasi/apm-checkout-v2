@@ -190,7 +190,7 @@ const PATTERN_DEFAULTS: Record<Pattern, PatternDefaults> = {
     expectedEvents: BASE_EVENTS_ASYNC,
     terminalFromWebhook: true,
   },
-  tokenization: {
+  bnpl: {
     supportsGatewayInitiated: true,
     supportsMerchantInitiated: true,
     supportsSeparateCapture: true,
@@ -460,7 +460,7 @@ function scenariosFor(pattern: Pattern, supportsCapture: boolean, supportsRefund
   if (pattern === 'redirect' || pattern === 'qr' || pattern === 'voucher') {
     base.push('webhook_pending_then_complete', 'webhook_pending_then_failed', 'webhook_pending_then_cancelled');
   }
-  if (pattern === 'tokenization' || pattern === 'native-wallet' || pattern === 'button-sdk') {
+  if (pattern === 'bnpl' || pattern === 'native-wallet' || pattern === 'button-sdk') {
     base.push('shipping_address_change', 'coupon_applied');
   }
   if (pattern === 'native-wallet') {

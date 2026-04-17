@@ -29,7 +29,13 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const V1_PORT = 3847;
-const V1_DIR = resolve(__dirname, '..', '..', '..', '..', '..', 'test-harness');
+// Vendored test-harness lives inside the apm-checkout-v2 repo at
+// <repo-root>/test-harness/. From dist/harness/, that's 4 levels up
+// (dist → reference-server → packages → repo-root) then test-harness/.
+// Previously this used 5 '..' which assumed test-harness was a sibling of the
+// repo root — that worked locally but broke on Render where only this repo
+// is cloned.
+const V1_DIR = resolve(__dirname, '..', '..', '..', '..', 'test-harness');
 const V1_ENTRY = resolve(V1_DIR, 'server.js');
 const LOG_BUFFER_SIZE = 200;
 

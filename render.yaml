@@ -37,6 +37,7 @@ services:
       npm run build -w @commercehub/shared-types --if-present && \
       npm run build -w @commercehub/node && \
       npm run build -w @commercehub/reference-server && \
+      (cd test-harness && npm ci --omit=dev) && \
       test -f packages/reference-server/dist/index.js
 
     startCommand: npm run start -w @commercehub/reference-server

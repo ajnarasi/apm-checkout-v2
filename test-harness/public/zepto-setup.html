@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zepto Sandbox Setup — APM Launch Kit</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #ededed; color: #1a1a1a; min-height: 100vh; padding: 40px 20px; }
+    .container { max-width: 720px; margin: 0 auto; }
+    .back-link { display: inline-block; font-size: 13px; color: #92400e; text-decoration: none; margin-bottom: 20px; font-weight: 500; }
+    .back-link:hover { text-decoration: underline; }
+    .card { background: #f0efeb; border: 1px solid #e0ddd5; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h1 { font-size: 32px; font-weight: 900; letter-spacing: -1px; color: #111827; margin-bottom: 6px; }
+    .subtitle { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
+    .status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 24px; }
+    .status-ready { background: #d1fae5; color: #065f46; }
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .status-error { background: #fee2e2; color: #991b1b; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot-ready { background: #10b981; }
+    .dot-pending { background: #f59e0b; }
+    .dot-error { background: #ef4444; }
+    .step { margin-bottom: 24px; padding: 20px; background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; }
+    .step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .step-num { width: 28px; height: 28px; border-radius: 50%; background: #f59e0b; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+    .step-title { font-size: 16px; font-weight: 700; color: #111827; }
+    .step-body { font-size: 13px; color: #4b5563; line-height: 1.6; margin-left: 40px; }
+    .step-body p { margin-bottom: 10px; }
+    .btn { display: inline-block; padding: 10px 20px; background: #f59e0b; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; transition: background 0.15s; font-family: inherit; }
+    .btn:hover { background: #d97706; }
+    .btn:disabled { background: #d1d5db; cursor: not-allowed; }
+    .btn-secondary { background: #fff; color: #111827; border: 1px solid #e0ddd5; }
+    .btn-secondary:hover { background: #f5f4f0; }
+    textarea { width: 100%; min-height: 80px; padding: 12px; border: 1px solid #e0ddd5; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; resize: vertical; background: #fafafa; color: #111827; }
+    textarea:focus { outline: none; border-color: #f59e0b; background: #fff; }
+    .result { margin-top: 16px; padding: 14px; border-radius: 8px; font-size: 13px; line-height: 1.6; display: none; }
+    .result.show { display: block; }
+    .result-success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+    .result-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .code-inline { background: #fef3c7; padding: 2px 6px; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; color: #92400e; }
+    .details { font-size: 12px; color: #6b7280; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0ddd5; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">&larr; Back to Portal</a>
+    <div class="card">
+      <h1>Zepto Sandbox Setup</h1>
+      <p class="subtitle">One-time OAuth bootstrap for the Zepto PayTo live sandbox integration</p>
+
+      <div id="status-pill" class="status-pill status-pending">
+        <span class="dot dot-pending"></span>
+        <span id="status-text">Checking status...</span>
+      </div>
+
+      <div id="ready-view" style="display:none;">
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num" style="background:#10b981;">✓</div>
+            <div class="step-title">Zepto is connected</div>
+          </div>
+          <div class="step-body">
+            <p>The refresh token is stored and the server will auto-refresh access tokens every ~2 hours.</p>
+            <p>You can now test Zepto in the <a href="/#diagrams" style="color:#92400e;font-weight:600;">E2E Testing tab</a> — select Zepto from the APAC region and run Init → Render → Authorize.</p>
+            <button class="btn btn-secondary" onclick="reauthorize()">Re-authorize (use a new code)</button>
+          </div>
+          <div class="details" id="status-details"></div>
+        </div>
+      </div>
+
+      <div id="bootstrap-view" style="display:none;">
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">1</div>
+            <div class="step-title">Authorize the app on Zepto</div>
+          </div>
+          <div class="step-body">
+            <p>Click the button below to open the Zepto sandbox authorization page in a new tab. Log in with your Zepto sandbox account and click <b>Authorize</b>.</p>
+            <button class="btn" id="open-auth-btn" onclick="openAuth()">Open Zepto Authorization &rarr;</button>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">2</div>
+            <div class="step-title">Copy the one-time code</div>
+          </div>
+          <div class="step-body">
+            <p>After authorizing, Zepto will display a one-time code on the page (out-of-band flow, <span class="code-inline">urn:ietf:wg:oauth:2.0:oob</span>). Copy it and paste it below.</p>
+            <textarea id="code-input" placeholder="Paste the authorization code here..."></textarea>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num">3</div>
+            <div class="step-title">Complete setup</div>
+          </div>
+          <div class="step-body">
+            <p>This exchanges the one-time code for a refresh token that the server will store and use to auto-refresh access tokens.</p>
+            <button class="btn" id="submit-btn" onclick="submitCode()">Complete Setup</button>
+            <div id="result" class="result"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="error-view" style="display:none;">
+        <div class="step">
+          <div class="step-header">
+            <div class="step-num" style="background:#ef4444;">!</div>
+            <div class="step-title">Zepto not configured</div>
+          </div>
+          <div class="step-body">
+            <p>ZEPTO_CLIENT_ID and ZEPTO_CLIENT_SECRET must be set in <span class="code-inline">test-harness/.env</span> before running the bootstrap flow.</p>
+            <p>Restart the server after updating <span class="code-inline">.env</span>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let authorizationUrl = null;
+
+    async function loadStatus() {
+      try {
+        const resp = await fetch('/api/zepto/status');
+        const status = await resp.json();
+        const authResp = await fetch('/api/zepto/authorize');
+        const authData = await authResp.json();
+        authorizationUrl = authData.authorizationUrl;
+
+        const pill = document.getElementById('status-pill');
+        const text = document.getElementById('status-text');
+        const details = document.getElementById('status-details');
+
+        if (!status.configured) {
+          pill.className = 'status-pill status-error';
+          pill.innerHTML = '<span class="dot dot-error"></span><span>Not configured</span>';
+          document.getElementById('error-view').style.display = 'block';
+          return;
+        }
+
+        if (status.ready) {
+          pill.className = 'status-pill status-ready';
+          pill.innerHTML = '<span class="dot dot-ready"></span><span>Connected — live sandbox ready</span>';
+          document.getElementById('ready-view').style.display = 'block';
+          if (details) {
+            details.innerHTML = 'Last refreshed: ' + (status.lastRefreshedAt || 'never (will refresh on next use)') +
+              '<br>Access token valid: ' + (status.accessTokenValid ? 'yes' : 'no (will refresh on next call)');
+          }
+        } else {
+          pill.className = 'status-pill status-pending';
+          pill.innerHTML = '<span class="dot dot-pending"></span><span>Bootstrap required</span>';
+          document.getElementById('bootstrap-view').style.display = 'block';
+        }
+      } catch (e) {
+        document.getElementById('status-text').textContent = 'Error: ' + e.message;
+      }
+    }
+
+    function openAuth() {
+      if (!authorizationUrl) { alert('Authorization URL not loaded yet'); return; }
+      window.open(authorizationUrl, '_blank', 'noopener');
+    }
+
+    async function submitCode() {
+      const code = document.getElementById('code-input').value.trim();
+      if (!code) { alert('Please paste the authorization code first'); return; }
+      const btn = document.getElementById('submit-btn');
+      const result = document.getElementById('result');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Setting up...';
+      result.className = 'result';
+      result.classList.remove('show');
+
+      try {
+        const resp = await fetch('/api/zepto/bootstrap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          result.className = 'result result-success show';
+          result.innerHTML = '<b>&#10003; Setup complete!</b><br>' + data.message + '<br><br>Reloading in 2 seconds...';
+          setTimeout(() => window.location.reload(), 2000);
+        } else {
+          result.className = 'result result-error show';
+          result.innerHTML = '<b>Error:</b> ' + (data.error || 'Unknown error') + (data.details ? '<br><pre style="font-size:11px;margin-top:8px;">' + JSON.stringify(data.details, null, 2) + '</pre>' : '');
+          btn.disabled = false;
+          btn.textContent = 'Complete Setup';
+        }
+      } catch (e) {
+        result.className = 'result result-error show';
+        result.textContent = 'Network error: ' + e.message;
+        btn.disabled = false;
+        btn.textContent = 'Complete Setup';
+      }
+    }
+
+    function reauthorize() {
+      document.getElementById('ready-view').style.display = 'none';
+      document.getElementById('bootstrap-view').style.display = 'block';
+      const pill = document.getElementById('status-pill');
+      pill.className = 'status-pill status-pending';
+      pill.innerHTML = '<span class="dot dot-pending"></span><span>Bootstrap required</span>';
+    }
+
+    loadStatus();
+  </script>
+</body>
+</html>

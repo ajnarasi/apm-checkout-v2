@@ -88,11 +88,11 @@ const APMS = [
   ['paypal_paylater','PayPal Pay Later',       'button-sdk',    'PAYPAL', 'DigitalWallet',            'PAYPAL',     'PAYPAL',  ['USD','EUR','GBP'], ['US','GB','DE','FR','IT','ES']],
   ['venmo',          'Venmo',                  'button-sdk',    'VENMO',  'DigitalWallet',            'VENMO',      'PAYPAL',  ['USD'], ['US']],
   ['cashapp',        'Cash App',               'button-sdk',    'CASHAPP','DigitalWallet',            'CASH_APP',   'CASHAPP', ['USD'], ['US']],
-  ['klarna',         'Klarna',                 'tokenization',  'KLARNA', 'AlternativePaymentMethod', null,         'KLARNA',  ['USD','EUR','GBP','SEK','NOK','DKK'], ['US','GB','DE','AT','NL','SE','NO','DK','FI','BE','ES','IT','FR','PL','CH','AU']],
-  ['affirm',         'Affirm',                 'tokenization',  'AFFIRM', 'AlternativePaymentMethod', null,         'AFFIRM',  ['USD','CAD'], ['US','CA']],
-  ['afterpay',       'Afterpay',               'tokenization',  'AFTERPAY','AlternativePaymentMethod',null,         'AFTERPAY',['USD','CAD','AUD','NZD','GBP','EUR'], ['US','CA','AU','NZ','GB','FR','ES','IT']],
-  ['sezzle',         'Sezzle',                 'tokenization',  'SEZZLE', 'AlternativePaymentMethod', null,         'OTHER',   ['USD','CAD'], ['US','CA']],
-  ['zip',            'Zip',                    'tokenization',  'ZIP',    'AlternativePaymentMethod', null,         'OTHER',   ['USD','AUD','NZD'], ['US','AU','NZ']],
+  ['klarna',         'Klarna',                 'bnpl',  'KLARNA', 'AlternativePaymentMethod', null,         'KLARNA',  ['USD','EUR','GBP','SEK','NOK','DKK'], ['US','GB','DE','AT','NL','SE','NO','DK','FI','BE','ES','IT','FR','PL','CH','AU']],
+  ['affirm',         'Affirm',                 'bnpl',  'AFFIRM', 'AlternativePaymentMethod', null,         'AFFIRM',  ['USD','CAD'], ['US','CA']],
+  ['afterpay',       'Afterpay',               'bnpl',  'AFTERPAY','AlternativePaymentMethod',null,         'AFTERPAY',['USD','CAD','AUD','NZD','GBP','EUR'], ['US','CA','AU','NZ','GB','FR','ES','IT']],
+  ['sezzle',         'Sezzle',                 'bnpl',  'SEZZLE', 'AlternativePaymentMethod', null,         'OTHER',   ['USD','CAD'], ['US','CA']],
+  ['zip',            'Zip',                    'bnpl',  'ZIP',    'AlternativePaymentMethod', null,         'OTHER',   ['USD','AUD','NZD'], ['US','AU','NZ']],
   ['alipayplus',     'Alipay+',                'qr',            'ALIPAYPLUS','AlternativePaymentMethod',null,       'OTHER',   ['CNY','HKD','KRW','THB','MYR','IDR','PHP','VND','SGD','JPY','USD','EUR'], ['CN','HK','KR','TH','MY','ID','PH','VN','SG','JP']],
   ['wechatpay',      'WeChat Pay',             'qr',            'WECHATPAY','AlternativePaymentMethod',null,        'OTHER',   ['CNY'], ['CN','HK']],
   ['grabpay',        'GrabPay',                'redirect',      'GRABPAY','AlternativePaymentMethod', null,         'OTHER',   ['SGD','MYR','PHP','THB','VND','IDR'], ['SG','MY','PH','TH','VN','ID']],
@@ -111,7 +111,7 @@ const PATTERN_CLIENT_PARAMS = {
     { name: 'returnUrls',      type: '{ successUrl, cancelUrl }',             required: true,  example: "{ successUrl: 'https://shop/return', cancelUrl: 'https://shop/cancel' }", description: 'Where to send the user after the bank/redirect flow' },
     { name: 'customer',        type: '{ firstName, lastName, email }',        required: false, example: '{ firstName: "Jane", lastName: "Doe" }', description: 'Some redirect APMs require customer context (SEPA, iDEAL)' },
   ],
-  tokenization: [
+  bnpl: [
     { name: 'amount',          type: '{ value, currency }',                   required: true,  example: "{ value: 129.00, currency: 'USD' }", description: 'BNPL providers use this for risk scoring' },
     { name: 'merchantOrderId', type: 'string',                                required: true,  example: 'ord_01HV5',                         description: 'Merchant reference' },
     { name: 'items',           type: 'Array<LineItem>',                       required: true,  example: '[{ name, quantity, unitPrice }]',  description: 'BNPL widgets need line items' },
@@ -272,7 +272,7 @@ export function filterApmRequirements({ pattern, currency, country, webhook, ret
 
 export const PATTERN_COLORS = {
   redirect:       'oklch(80% 0.180 72)',
-  tokenization:   'oklch(71% 0.208 48)',
+  bnpl:          'oklch(71% 0.208 48)',
   'native-wallet':'oklch(68% 0.180 300)',
   'button-sdk':   'oklch(72% 0.140 200)',
   qr:             'oklch(70% 0.200 10)',

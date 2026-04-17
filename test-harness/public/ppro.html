@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPRO 52-APM E2E Test — Commerce Hub Mapping Validation</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e0e0e0; padding: 16px; }
+    h1 { color: #6C63FF; font-size: 1.3em; }
+    .sub { color: #888; font-size: 0.8em; margin-bottom: 12px; }
+    .summary { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .stat { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 10px 16px; min-width: 100px; text-align: center; }
+    .stat .num { font-size: 1.8em; font-weight: 700; }
+    .stat .label { font-size: 0.7em; color: #888; text-transform: uppercase; }
+    .stat.pass .num { color: #4caf50; }
+    .stat.fail .num { color: #f44336; }
+    .stat.total .num { color: #6C63FF; }
+    .stat.pct .num { color: #ff9800; }
+    .progress { width: 100%; height: 6px; background: #222; border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
+    .progress-bar { height: 100%; background: #6C63FF; transition: width 0.3s; border-radius: 3px; }
+    button { background: #6C63FF; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.9em; margin-bottom: 12px; }
+    button:hover { background: #5a52d5; }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .region { margin-bottom: 16px; }
+    .region-header { font-size: 0.85em; font-weight: 600; color: #6C63FF; padding: 6px 0; border-bottom: 1px solid #333; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.75em; }
+    th { background: #1a1a1a; color: #888; text-align: left; padding: 4px 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; }
+    td { padding: 4px 8px; border-bottom: 1px solid #1a1a1a; }
+    tr.pass { background: #0a1a0a; }
+    tr.fail { background: #1a0a0a; }
+    tr.pending { opacity: 0.4; }
+    tr.running { background: #1a1a2a; }
+    .icon { font-size: 1em; }
+    .badge { font-size: 0.65em; padding: 1px 6px; border-radius: 8px; font-weight: 600; }
+    .badge.pass { background: #1b5e20; color: #4caf50; }
+    .badge.fail { background: #b71c1c; color: #ef9a9a; }
+    .badge.pending { background: #222; color: #666; }
+    .badge.running { background: #1a237e; color: #9fa8da; }
+    .checks { font-size: 0.65em; color: #888; }
+    .check-pass { color: #4caf50; }
+    .check-fail { color: #f44336; }
+    .timer { color: #888; font-size: 0.7em; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <h1>PPRO 52-APM — Commerce Hub Mapping E2E Test</h1>
+  <p class="sub">Live sandbox validation: CH field mapping → PPRO API → 52 payment methods across 8 regions</p>
+
+  <div class="summary">
+    <div class="stat total"><div class="num" id="s-total">0</div><div class="label">Tested</div></div>
+    <div class="stat pass"><div class="num" id="s-pass">0</div><div class="label">Pass</div></div>
+    <div class="stat fail"><div class="num" id="s-fail">0</div><div class="label">Fail</div></div>
+    <div class="stat pct"><div class="num" id="s-pct">—</div><div class="label">Pass Rate</div></div>
+    <div class="stat"><div class="num" id="s-time">0s</div><div class="label">Elapsed</div></div>
+  </div>
+
+  <div class="progress"><div class="progress-bar" id="progress" style="width:0%"></div></div>
+
+  <button id="btn-run" onclick="runAllTests()">Run All 52 APMs</button>
+  <span class="timer" id="status-text"></span>
+
+  <div id="results"></div>
+
+  <script>
+    const APMS = [
+      // Europe (16)
+      { region: 'Europe', name: 'iDEAL', code: 'IDEAL', country: 'NL', currency: 'EUR' },
+      { region: 'Europe', name: 'Bancontact', code: 'BANCONTACT', country: 'BE', currency: 'EUR' },
+      { region: 'Europe', name: 'EPS', code: 'EPS', country: 'AT', currency: 'EUR' },
+      { region: 'Europe', name: 'BLIK', code: 'BLIK', country: 'PL', currency: 'PLN' },
+      { region: 'Europe', name: 'Multibanco', code: 'MULTIBANCO', country: 'PT', currency: 'EUR' },
+      { region: 'Europe', name: 'MB Way', code: 'MBWAY', country: 'PT', currency: 'EUR' },
+      { region: 'Europe', name: 'Trustly', code: 'TRUSTLY', country: 'DE', currency: 'EUR' },
+      { region: 'Europe', name: 'Wero', code: 'WERO', country: 'DE', currency: 'EUR' },
+      { region: 'Europe', name: 'Sofort', code: 'SOFORT', country: 'DE', currency: 'EUR' },
+      { region: 'Europe', name: 'Giropay', code: 'GIROPAY', country: 'DE', currency: 'EUR' },
+      { region: 'Europe', name: 'Przelewy24', code: 'PRZELEWY24', country: 'PL', currency: 'PLN' },
+      { region: 'Europe', name: 'Swish', code: 'SWISH', country: 'SE', currency: 'SEK' },
+      { region: 'Europe', name: 'Vipps', code: 'VIPPS', country: 'NO', currency: 'NOK' },
+      { region: 'Europe', name: 'MobilePay', code: 'MOBILEPAY', country: 'DK', currency: 'DKK' },
+      { region: 'Europe', name: 'PostFinance', code: 'POSTFINANCE', country: 'CH', currency: 'CHF' },
+      { region: 'Europe', name: 'TWINT', code: 'TWINT', country: 'CH', currency: 'CHF' },
+      // LATAM (10)
+      { region: 'LATAM', name: 'Pix', code: 'PIX', country: 'BR', currency: 'BRL' },
+      { region: 'LATAM', name: 'Boleto', code: 'BOLETO', country: 'BR', currency: 'BRL' },
+      { region: 'LATAM', name: 'OXXO', code: 'OXXO', country: 'MX', currency: 'MXN' },
+      { region: 'LATAM', name: 'SPEI', code: 'SPEI', country: 'MX', currency: 'MXN' },
+      { region: 'LATAM', name: 'PSE', code: 'PSE', country: 'CO', currency: 'COP' },
+      { region: 'LATAM', name: 'Efecty', code: 'EFECTY', country: 'CO', currency: 'COP' },
+      { region: 'LATAM', name: 'Mercado Pago', code: 'MERCADOPAGO', country: 'AR', currency: 'ARS' },
+      { region: 'LATAM', name: 'RapiPago', code: 'RAPIPAGO', country: 'AR', currency: 'ARS' },
+      { region: 'LATAM', name: 'PagoEfectivo', code: 'PAGOEFECTIVO', country: 'PE', currency: 'PEN' },
+      { region: 'LATAM', name: 'Webpay', code: 'WEBPAY', country: 'CL', currency: 'CLP' },
+      // APAC (15)
+      { region: 'APAC', name: 'Alipay', code: 'ALIPAY', country: 'CN', currency: 'CNY' },
+      { region: 'APAC', name: 'WeChat Pay', code: 'WECHATPAY', country: 'CN', currency: 'CNY' },
+      { region: 'APAC', name: 'GrabPay', code: 'GRABPAY', country: 'SG', currency: 'SGD' },
+      { region: 'APAC', name: 'PayNow', code: 'PAYNOW', country: 'SG', currency: 'SGD' },
+      { region: 'APAC', name: 'GCash', code: 'GCASH', country: 'PH', currency: 'PHP' },
+      { region: 'APAC', name: 'Maya', code: 'MAYA', country: 'PH', currency: 'PHP' },
+      { region: 'APAC', name: 'LINE Pay', code: 'LINEPAY', country: 'TH', currency: 'THB' },
+      { region: 'APAC', name: 'KakaoPay', code: 'KAKAOPAY', country: 'KR', currency: 'KRW' },
+      { region: 'APAC', name: 'DANA', code: 'DANA', country: 'ID', currency: 'IDR' },
+      { region: 'APAC', name: 'OVO', code: 'OVO', country: 'ID', currency: 'IDR' },
+      { region: 'APAC', name: 'ShopeePay', code: 'SHOPEEPAY', country: 'ID', currency: 'IDR' },
+      { region: 'APAC', name: 'Konbini', code: 'KONBINI', country: 'JP', currency: 'JPY' },
+      { region: 'APAC', name: 'PayPay', code: 'PAYPAY', country: 'JP', currency: 'JPY' },
+      { region: 'APAC', name: 'UPI', code: 'UPI', country: 'IN', currency: 'INR' },
+      { region: 'APAC', name: "Touch 'n Go", code: 'TOUCHNGO', country: 'MY', currency: 'MYR' },
+      // Global (11)
+      { region: 'Global', name: 'PayPal', code: 'PAYPAL', country: 'US', currency: 'USD' },
+      { region: 'Global', name: 'Klarna', code: 'KLARNA', country: 'US', currency: 'USD' },
+      { region: 'Global', name: 'Afterpay', code: 'AFTERPAY', country: 'US', currency: 'USD' },
+      { region: 'Global', name: 'Affirm', code: 'AFFIRM', country: 'US', currency: 'USD' },
+      { region: 'Global', name: 'Cash App', code: 'CASHAPP', country: 'US', currency: 'USD' },
+      { region: 'Global', name: 'Venmo', code: 'VENMO', country: 'US', currency: 'USD' },
+      { region: 'Global', name: 'Apple Pay', code: 'APPLEPAY', country: 'US', currency: 'USD' },
+      { region: 'Global', name: 'Google Pay', code: 'GOOGLEPAY', country: 'US', currency: 'USD' },
+      { region: 'Global', name: 'Sezzle', code: 'SEZZLE', country: 'US', currency: 'USD' },
+      { region: 'Global', name: 'Zip', code: 'ZIP', country: 'US', currency: 'USD' },
+      { region: 'Global', name: 'TabaPay', code: 'TABAPAY', country: 'US', currency: 'USD' },
+    ];
+
+    let results = {};
+    let startTime = null;
+
+    // Build the table
+    function buildTable() {
+      const container = document.getElementById('results');
+      const regions = [...new Set(APMS.map(a => a.region))];
+
+      let html = '';
+      for (const region of regions) {
+        const apms = APMS.filter(a => a.region === region);
+        html += `<div class="region">
+          <div class="region-header">${region} (${apms.length} APMs)</div>
+          <table>
+            <tr><th width="3%"></th><th width="15%">APM</th><th width="5%">Code</th><th width="4%">CC</th><th width="5%">Cur</th><th width="7%">Status</th><th width="8%">Charge ID</th><th width="27%">Mapping Checks</th><th width="5%">Result</th></tr>
+            ${apms.map((a, i) => `
+              <tr id="row-${a.code}" class="pending">
+                <td class="icon" id="icon-${a.code}">⏳</td>
+                <td><strong>${a.name}</strong></td>
+                <td style="font-family:monospace;font-size:0.85em">${a.code}</td>
+                <td>${a.country}</td>
+                <td>${a.currency}</td>
+                <td id="status-${a.code}">—</td>
+                <td id="charge-${a.code}" style="font-family:monospace;font-size:0.8em">—</td>
+                <td id="checks-${a.code}" class="checks">—</td>
+                <td id="result-${a.code}"><span class="badge pending">PENDING</span></td>
+              </tr>
+            `).join('')}
+          </table>
+        </div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function updateStats() {
+      const total = Object.keys(results).length;
+      const passed = Object.values(results).filter(r => r.pass).length;
+      const failed = total - passed;
+      document.getElementById('s-total').textContent = total;
+      document.getElementById('s-pass').textContent = passed;
+      document.getElementById('s-fail').textContent = failed;
+      document.getElementById('s-pct').textContent = total > 0 ? Math.round(passed / total * 100) + '%' : '—';
+      document.getElementById('progress').style.width = (total / APMS.length * 100) + '%';
+      if (startTime) {
+        document.getElementById('s-time').textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+      }
+    }
+
+    async function testAPM(apm) {
+      const row = document.getElementById(`row-${apm.code}`);
+      const icon = document.getElementById(`icon-${apm.code}`);
+      const statusEl = document.getElementById(`status-${apm.code}`);
+      const chargeEl = document.getElementById(`charge-${apm.code}`);
+      const checksEl = document.getElementById(`checks-${apm.code}`);
+      const resultEl = document.getElementById(`result-${apm.code}`);
+
+      row.className = 'running';
+      icon.textContent = '🔄';
+      resultEl.innerHTML = '<span class="badge running">RUNNING</span>';
+
+      try {
+        const resp = await fetch('/api/ppro/charge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: 10.00,
+            currency: apm.currency,
+            customerName: 'Test User',
+            customerEmail: 'test@example.com',
+            country: apm.country,
+            paymentMethod: apm.code,
+            captureFlag: true,
+            merchantOrderId: `E2E-${apm.code}-${Date.now()}`
+          })
+        });
+        const data = await resp.json();
+
+        const pass = data.success === true;
+        const checks = [];
+
+        if (pass) {
+          checks.push(data.chargeId?.startsWith('charge_') ? '<span class="check-pass">ID✓</span>' : '<span class="check-fail">ID✗</span>');
+          checks.push(data.amountSymmetric ? '<span class="check-pass">Amt✓</span>' : '<span class="check-fail">Amt✗</span>');
+          checks.push(data.currencyPreserved ? '<span class="check-pass">Cur✓</span>' : '<span class="check-fail">Cur✗</span>');
+          checks.push(data.paymentMethod === apm.code ? '<span class="check-pass">PM✓</span>' : '<span class="check-fail">PM✗</span>');
+          checks.push(data.hasRedirect ? '<span class="check-pass">Redir✓</span>' : (data.hasQR ? '<span class="check-pass">QR✓</span>' : '<span class="check-fail">Auth?</span>'));
+
+          statusEl.textContent = data.status?.substring(0, 15) || '?';
+          chargeEl.textContent = data.chargeId?.substring(0, 18) || '?';
+          row.className = 'pass';
+          icon.textContent = '✅';
+          resultEl.innerHTML = '<span class="badge pass">PASS</span>';
+        } else {
+          statusEl.textContent = (data.error || 'FAIL').substring(0, 25);
+          checks.push('<span class="check-fail">' + (data.error || 'API error').substring(0, 40) + '</span>');
+          row.className = 'fail';
+          icon.textContent = '❌';
+          resultEl.innerHTML = '<span class="badge fail">FAIL</span>';
+        }
+
+        checksEl.innerHTML = checks.join(' ');
+        results[apm.code] = { pass, data };
+      } catch (err) {
+        statusEl.textContent = 'ERROR';
+        checksEl.innerHTML = `<span class="check-fail">${err.message.substring(0, 40)}</span>`;
+        row.className = 'fail';
+        icon.textContent = '❌';
+        resultEl.innerHTML = '<span class="badge fail">FAIL</span>';
+        results[apm.code] = { pass: false, error: err.message };
+      }
+
+      updateStats();
+    }
+
+    async function runAllTests() {
+      document.getElementById('btn-run').disabled = true;
+      results = {};
+      startTime = Date.now();
+      document.getElementById('status-text').textContent = 'Running...';
+
+      const timer = setInterval(updateStats, 500);
+
+      // Run sequentially to avoid PPRO rate limiting
+      for (const apm of APMS) {
+        await testAPM(apm);
+        // Small delay between requests
+        await new Promise(r => setTimeout(r, 200));
+      }
+
+      clearInterval(timer);
+      updateStats();
+
+      const total = Object.keys(results).length;
+      const passed = Object.values(results).filter(r => r.pass).length;
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      document.getElementById('status-text').textContent =
+        `Complete: ${passed}/${total} passed (${Math.round(passed/total*100)}%) in ${elapsed}s`;
+      document.getElementById('btn-run').disabled = false;
+    }
+
+    buildTable();
+  </script>
+</body>
+</html>

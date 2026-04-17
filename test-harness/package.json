@@ -1,0 +1,14 @@
+{
+  "name": "apm-test-harness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser-based test harness for APM mapping E2E validation — Klarna widget + CashApp Pay Kit",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.18.2",
+    "node-fetch": "^2.7.0"
+  }
+}

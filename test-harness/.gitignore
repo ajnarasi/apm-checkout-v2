@@ -1,0 +1,7 @@
+node_modules/
+.env
+.env.*
+.zepto-tokens.json
+.zepto-tokens.json.bak
+certs/
+*.log

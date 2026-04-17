@@ -91,7 +91,7 @@ const COMPARE_ROWS = Object.freeze([
   {
     capability: 'Provider SDK integration',
     v1: 'Inline script tags',
-    v2: '6 base adapter classes (redirect / tokenization / native-wallet / button-sdk / qr / voucher)',
+    v2: '6 base adapter classes (redirect / bnpl / native-wallet / button-sdk / qr / voucher)',
   },
   {
     capability: 'Rate limiting',

@@ -150,6 +150,17 @@ export const api = {
     }),
 
   reset: () => send('POST', '/v2/harness/reset'),
+
+  // ─── Sandbox credential helpers (Klarna / CashApp / PPRO) ────
+  sandboxDefaults: (apm) =>
+    send('GET', `/v2/harness/sandbox-defaults?apm=${encodeURIComponent(apm)}`),
+
+  sandboxCall: ({ apm, action, body }) =>
+    send(
+      'POST',
+      `/v2/harness/sandbox-call/${encodeURIComponent(apm)}/${encodeURIComponent(action)}`,
+      { body }
+    ),
 };
 
 // ─── SSE event stream ─────────────────────────────────────────────

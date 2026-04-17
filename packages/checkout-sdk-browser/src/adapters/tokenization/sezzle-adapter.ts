@@ -24,7 +24,7 @@
 import type { AdapterCapabilities } from '@commercehub/shared-types';
 import { defaultCallbacks, defaultInteractive } from '@commercehub/shared-types';
 import { TokenizationAdapterBase } from '../base/tokenization-base.js';
-import type { TokenizationToken } from '../base/provider-token.js';
+import type { BnplToken } from '../base/provider-token.js';
 import { loadScript, ScriptLoadError } from '../../core/load-script.js';
 
 interface SezzleCheckoutGlobal {
@@ -52,10 +52,10 @@ export class SezzleAdapter extends TokenizationAdapterBase {
   readonly pattern = 'server-bnpl' as const;
 
   static readonly capabilities: AdapterCapabilities = {
-    pattern: 'tokenization',
+    pattern: 'bnpl',
     displayName: 'Sezzle',
     region: 'North America',
-    callbacks: defaultCallbacks('tokenization'),
+    callbacks: defaultCallbacks('bnpl'),
     sdk: {
       requiresClientScript: true,
       cdnUrl: SEZZLE_SDK_URL,
@@ -80,7 +80,7 @@ export class SezzleAdapter extends TokenizationAdapterBase {
     }
   }
 
-  protected override async tokenize(): Promise<TokenizationToken> {
+  protected override async tokenize(): Promise<BnplToken> {
     if (!window.Sezzle) throw new Error('Sezzle SDK not loaded');
 
     // STEP 2: Mint checkout URL server-side via CH Orders preflight
@@ -93,12 +93,12 @@ export class SezzleAdapter extends TokenizationAdapterBase {
     const { checkoutUrl } = (await res.json()) as { checkoutUrl: string };
 
     // STEP 3-5: Open the Sezzle popup and await onComplete
-    return new Promise<TokenizationToken>((resolve, reject) => {
+    return new Promise<BnplToken>((resolve, reject) => {
       window.Sezzle!.checkoutStart({
         checkoutUrl,
         mode: 'popup',
         onComplete: (data) => resolve({
-          kind: 'tokenization',
+          kind: 'bnpl',
           provider: 'sezzle',
           payload: { checkoutUuid: data.uuid },
         }),

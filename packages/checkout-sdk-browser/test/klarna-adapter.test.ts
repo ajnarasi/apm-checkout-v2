@@ -91,7 +91,7 @@ describe('KlarnaAdapter (real adapter + provider fake)', () => {
 
   it('declares a capabilities row matching ADR / capability matrix', () => {
     const caps = KlarnaAdapter.capabilities;
-    expect(caps.pattern).toBe('tokenization');
+    expect(caps.pattern).toBe('bnpl');
     expect(caps.displayName).toBe('Klarna');
     expect(caps.region).toBe('Global');
     // Architect P0: token TTL declared

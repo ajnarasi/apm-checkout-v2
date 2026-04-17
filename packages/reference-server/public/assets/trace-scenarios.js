@@ -78,7 +78,7 @@ function buildSyncSale(apm, ctx) {
         `Commerce Hub returns an access token that the merchant backend will attach as Bearer on the orders call.`),
       step('merchant', 'browser', `200 { sessionId }`, 'OK', 200,
         undefined,
-        { sessionId: 'sess_' + randId(), providerClientToken: apm.pattern === 'tokenization' ? 'tok_' + randId() : null },
+        { sessionId: 'sess_' + randId(), providerClientToken: apm.pattern === 'bnpl' ? 'tok_' + randId() : null },
         `Session handed back to the browser SDK. The access token never leaves the backend.`),
       step('browser', 'merchant', `POST /v2/orders/${apm.id}`, 'OK', 400,
         { sessionId: 'sess_' + randId(), source: { type: sourceType }, scenarioId: 'sync_sale_ok' },

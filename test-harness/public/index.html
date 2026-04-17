@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APM Launch Kit Portal — 55 APMs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #ededed; color: #1a1a1a; display: flex; height: 100vh; overflow: hidden; }
+
+    /* ============ SIDEBAR (Prodify-style) ============ */
+    .sidebar {
+      width: 230px; min-width: 230px; background: #f5f4f0; border-right: 1px solid #e0ddd5;
+      display: flex; flex-direction: column; height: 100vh; overflow-y: auto;
+    }
+    .sidebar-brand { padding: 20px 20px 16px; border-bottom: 1px solid #e0ddd5; }
+    .sidebar-brand h1 { font-size: 17px; font-weight: 800; color: #1f2937; letter-spacing: -0.3px; }
+    .sidebar-brand .brand-sub { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+
+    .sidebar-nav { padding: 12px 10px; flex: 1; }
+    .sidebar-section { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #9ca3af; padding: 12px 10px 6px; font-weight: 600; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 14px; border: none;
+      background: none; color: #6b7280; font-size: 13.5px; font-weight: 500; cursor: pointer;
+      border-radius: 8px; text-align: left; transition: all 0.15s; margin: 1px 0;
+    }
+    .nav-btn:hover { background: #fef9ee; color: #78350f; }
+    .nav-btn.active { background: #fef3c7; color: #92400e; font-weight: 600; }
+    .nav-btn .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-divider { height: 1px; background: #e0ddd5; margin: 8px 10px; }
+
+    .sidebar-footer { padding: 16px; border-top: 1px solid #e0ddd5; }
+    .sidebar-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+    .stat-chip { background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+
+    /* ============ MAIN CONTENT ============ */
+    .main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+    /* Tab content */
+    .tab-content { display: none; flex: 1; overflow-y: auto; }
+    .tab-content.active { display: block; }
+
+    /* ============ LIGHT THEME (Overview, E2E, Confluence, PRD) ============ */
+    .light-tab { background: #f0efeb; }
+    .light-tab .md-container { color: #374151; }
+    .light-tab .md-container h1 { color: #111827; border-bottom: 1px solid #e5e7eb; }
+    .light-tab .md-container h2 { color: #1f2937; border-bottom: 1px solid #f3f4f6; }
+    .light-tab .md-container h3 { color: #1f2937; }
+    .light-tab .md-container code { background: #f3f4f6; color: #7c3aed; }
+    .light-tab .md-container pre { background: #1e1e2e; color: #e6edf3; }
+    .light-tab .md-container pre code { background: none; color: inherit; }
+    .light-tab .md-container th { background: #f9fafb; color: #374151; }
+    .light-tab .md-container th, .light-tab .md-container td { border-color: #e5e7eb; }
+    .light-tab .md-container a { color: #7c3aed; }
+    .light-tab .md-container blockquote { border-left-color: #7c3aed; color: #6b7280; }
+    .light-tab .md-container strong { color: #111827; }
+    .light-tab .md-container hr { border-top-color: #e5e7eb; }
+
+    /* PRD layout light */
+    .light-tab .prd-toc { background: #f5f4f0; border-right-color: #e0ddd5; }
+    .light-tab .prd-toc h3 { color: #9ca3af; }
+    .light-tab .prd-toc a { color: #6b7280; }
+    .light-tab .prd-toc a:hover { color: #92400e; background: #fef3c7; }
+
+    /* ============ DARK THEME (SDK, Requirements, Diagrams, API) ============ */
+    .dark-tab { background: #0d1117; color: #e6edf3; }
+
+    /* Markdown rendering (base) */
+    .md-container { max-width: 960px; margin: 0 auto; padding: 32px; line-height: 1.7; }
+    .md-container h1 { font-size: 28px; padding-bottom: 8px; margin: 24px 0 16px; }
+    .md-container h2 { font-size: 22px; padding-bottom: 6px; margin: 20px 0 12px; }
+    .md-container h3 { font-size: 18px; margin: 16px 0 8px; }
+    .md-container p { margin: 8px 0; }
+    .md-container code { padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    .md-container pre { padding: 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; }
+    .md-container pre code { padding: 0; }
+    .md-container table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    .md-container th, .md-container td { padding: 8px 12px; text-align: left; }
+    .md-container th { font-weight: 600; }
+    .md-container ul, .md-container ol { padding-left: 24px; margin: 8px 0; }
+    .md-container li { margin: 4px 0; }
+
+    /* Dark markdown defaults */
+    .dark-tab .md-container h1 { border-bottom: 1px solid #30363d; }
+    .dark-tab .md-container h2 { border-bottom: 1px solid #21262d; }
+    .dark-tab .md-container code { background: #161b22; }
+    .dark-tab .md-container pre { background: #161b22; }
+    .dark-tab .md-container th, .dark-tab .md-container td { border: 1px solid #30363d; }
+    .dark-tab .md-container th { background: #161b22; }
+    .dark-tab .md-container a { color: #58a6ff; }
+    .dark-tab .md-container blockquote { border-left: 3px solid #3b82f6; color: #8b949e; }
+    .dark-tab .md-container strong { color: #f0f6fc; }
+    .dark-tab .md-container hr { border: none; border-top: 1px solid #21262d; }
+
+    /* PRD with TOC */
+    .prd-layout { display: flex; height: 100%; }
+    .prd-toc { width: 260px; min-width: 260px; overflow-y: auto; padding: 16px; }
+    .prd-toc h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .prd-toc a { display: block; text-decoration: none; padding: 4px 8px; font-size: 13px; border-radius: 4px; margin: 2px 0; }
+    .prd-toc a.h3 { padding-left: 20px; font-size: 12px; }
+    .prd-body { flex: 1; overflow-y: auto; }
+
+    /* SDK Code browser (dark always) */
+    .code-layout { display: flex; height: 100%; }
+    .code-sidebar { width: 280px; min-width: 280px; background: #161b22; border-right: 1px solid #30363d; overflow-y: auto; padding: 12px; }
+    .code-sidebar .toggle-bar { display: flex; margin-bottom: 12px; gap: 4px; }
+    .code-sidebar .toggle-btn { flex: 1; padding: 6px; border: 1px solid #30363d; background: #0d1117; color: #8b949e; font-size: 12px; cursor: pointer; border-radius: 4px; text-align: center; }
+    .code-sidebar .toggle-btn.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .file-tree { font-size: 13px; }
+    .file-tree .dir { color: #58a6ff; cursor: pointer; padding: 3px 4px; }
+    .file-tree .dir::before { content: '\25B6 '; font-size: 10px; }
+    .file-tree .dir.open::before { content: '\25BC '; }
+    .file-tree .file { color: #8b949e; cursor: pointer; padding: 3px 4px 3px 20px; border-radius: 4px; }
+    .file-tree .file:hover { background: #21262d; color: #e6edf3; }
+    .file-tree .file.active { background: #7c3aed33; color: #d2a8ff; }
+    .file-tree .children { padding-left: 16px; display: none; }
+    .file-tree .children.open { display: block; }
+    .code-viewer { flex: 1; overflow-y: auto; padding: 16px; }
+    .code-viewer pre { margin: 0; }
+    .code-viewer .file-path { font-size: 13px; color: #8b949e; margin-bottom: 8px; padding: 8px; background: #161b22; border-radius: 4px; }
+
+    /* Requirements (dark always) */
+    .tracker-container { padding: 24px; overflow-x: auto; }
+    .tracker-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    .tracker-table th { background: #161b22; padding: 10px 12px; text-align: left; border: 1px solid #30363d; cursor: pointer; user-select: none; position: sticky; top: 0; z-index: 1; color: #e6edf3; }
+    .tracker-table th:hover { background: #21262d; }
+    .tracker-table td { padding: 8px 12px; border: 1px solid #21262d; color: #c9d1d9; }
+    .tracker-table tr:hover td { background: #161b2288; }
+    .req-section-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .req-section-tab { padding: 4px 12px; border: 1px solid #30363d; background: #0d1117; color: #8b949e; font-size: 12px; cursor: pointer; border-radius: 4px; white-space: nowrap; }
+    .req-section-tab.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .req-section-tab:hover:not(.active) { background: #21262d; color: #e6edf3; }
+    .yes-badge { color: #3fb950; font-weight: 600; }
+    .no-badge { color: #484f58; }
+
+    /* API Docs (dark always) */
+    .api-docs-container { height: 100%; }
+    .api-docs-container .swagger-ui { background: #0d1117; }
+    .api-docs-container .swagger-ui .topbar { display: none; }
+
+    /* Diagrams (dark always) */
+    .diagram-apm-btn { display: block; width: 100%; text-align: left; padding: 6px 10px; border: none; background: none; color: #8b949e; font-size: 13px; cursor: pointer; border-radius: 4px; margin: 2px 0; }
+    .diagram-apm-btn:hover { background: #21262d; color: #e6edf3; }
+    .diagram-apm-btn.active { background: #7c3aed33; color: #d2a8ff; }
+    .diagram-region-label { font-size: 11px; color: #6e7681; text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 4px; }
+
+    .e2e-frame { width: 100%; height: 100%; border: none; }
+    .loading { text-align: center; padding: 60px; color: #9ca3af; font-size: 14px; }
+
+    /* ============ OVERVIEW (Light + Koturu typography) ============ */
+    .overview-wrap { max-width: 1000px; margin: 0 auto; padding: 40px 40px 80px; line-height: 1.7; }
+    .alt-label { font-size: 11px; text-transform: uppercase; letter-spacing: 3px; color: #9ca3af; margin-bottom: 6px; font-weight: 600; }
+    .section-title { font-size: 26px; font-weight: 800; color: #111827; margin: 0 0 14px; letter-spacing: -0.5px; }
+
+    /* Hero */
+    .hero-title { font-size: 52px; font-weight: 900; color: #111827; letter-spacing: -2px; line-height: 1.05; margin: 0 0 16px; }
+    .hero-sub { font-size: 17px; color: #6b7280; max-width: 680px; margin: 0 auto; line-height: 1.6; }
+    .hero-metrics { display: flex; justify-content: center; gap: 32px; margin-top: 28px; }
+    .hero-metric { text-align: center; }
+    .hero-metric .val { font-size: 44px; font-weight: 900; color: #f59e0b; letter-spacing: -1.5px; }
+    .hero-metric .lbl { font-size: 12px; color: #9ca3af; margin-top: 2px; font-weight: 500; }
+
+    /* Cards */
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .card-accent { border-left: 4px solid; border-radius: 0 12px 12px 0; }
+    .card-grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .card-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .card-body { font-size: 13px; color: #4b5563; line-height: 1.6; }
+    .card-footer { margin-top: 12px; padding-top: 10px; border-top: 1px solid #f3f4f6; font-size: 12px; color: #9ca3af; }
+    .card-footer a { color: #7c3aed; text-decoration: none; font-weight: 500; }
+
+    /* Problem box */
+    .problem-box { background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 0 12px 12px 0; padding: 22px 24px; margin-bottom: 36px; }
+    .problem-box h2 { font-size: 17px; font-weight: 700; color: #92400e; margin: 0 0 8px; }
+    .problem-box p { color: #78350f; margin: 0; font-size: 14px; }
+    .problem-box strong { color: #451a03; }
+
+    /* Pattern cards */
+    .pattern-card { background: #fff; border: 1px solid #e5e7eb; border-left: 4px solid; border-radius: 0 10px 10px 0; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+    .pattern-card .name { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+    .pattern-card .apms { font-size: 12px; color: #6b7280; }
+    .pattern-card .desc { font-size: 11px; color: #9ca3af; margin-top: 5px; }
+
+    /* Role cards */
+    .role-card { background: #fff; border-radius: 14px; padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-top: 4px solid; }
+    .role-card .role-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+    .role-card ul { color: #4b5563; font-size: 13px; padding-left: 16px; margin: 0; }
+    .role-card li { margin-bottom: 7px; }
+    .role-card strong { color: #1f2937; }
+
+    /* JTBD cards */
+    .jtbd-card { background: #fff; border-left: 4px solid; border-radius: 0 12px 12px 0; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .jtbd-card .icon { font-size: 20px; margin-bottom: 6px; }
+    .jtbd-card .job-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .jtbd-card .job-text { font-size: 12px; color: #4b5563; line-height: 1.6; }
+    .jtbd-card .job-text strong { color: #111827; }
+    .jtbd-card .job-dims { margin-top: 10px; font-size: 11px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 8px; }
+
+    /* Four Forces */
+    .force-card { border-radius: 10px; padding: 16px; border-top: 3px solid; }
+    .force-card .force-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .force-card ul { font-size: 12px; color: #4b5563; padding-left: 16px; margin: 0; line-height: 1.7; }
+    .force-push { background: #fef2f2; border-top-color: #ef4444; }
+    .force-push .force-title { color: #dc2626; }
+    .force-pull { background: #f0fdf4; border-top-color: #22c55e; }
+    .force-pull .force-title { color: #16a34a; }
+    .force-anxiety { background: #fffbeb; border-top-color: #f59e0b; }
+    .force-anxiety .force-title { color: #d97706; }
+    .force-habit { background: #f9fafb; border-top-color: #9ca3af; }
+    .force-habit .force-title { color: #6b7280; }
+    .force-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #fff; border: 2px solid #e5e7eb; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; z-index: 2; font-size: 10px; font-weight: 700; color: #6b7280; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+    /* Strategy Canvas */
+    .canvas-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .canvas-table th { text-align: left; padding: 10px 14px; color: #6b7280; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
+    .canvas-table td { padding: 12px 14px; border-bottom: 1px solid #f3f4f6; }
+    .canvas-table .bar { height: 8px; border-radius: 4px; display: inline-block; }
+    .canvas-table .bar-low { background: #fca5a5; }
+    .canvas-table .bar-med { background: #fcd34d; }
+    .canvas-table .bar-high { background: #86efac; }
+    .canvas-table .bar-label { font-size: 11px; margin-left: 8px; }
+
+    /* ERRC grid */
+    .errc-card { border-radius: 12px; padding: 20px; border-top: 4px solid; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .errc-card .errc-title { font-size: 15px; font-weight: 800; margin-bottom: 10px; }
+    .errc-card ul { font-size: 12px; color: #4b5563; padding-left: 16px; margin: 0; line-height: 1.9; }
+
+    /* Portal guide cards */
+    .guide-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+    .guide-card:hover { border-color: #7c3aed; box-shadow: 0 2px 8px rgba(124,58,237,0.1); }
+    .guide-card .guide-title { font-size: 14px; font-weight: 700; color: #1f2937; }
+    .guide-card .guide-desc { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+    /* ROI table */
+    .roi-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .roi-table th { text-align: left; padding: 10px 14px; color: #6b7280; border-bottom: 2px solid #e5e7eb; }
+    .roi-table td { padding: 10px 14px; border-bottom: 1px solid #f3f4f6; }
+    .roi-table .red { color: #dc2626; font-weight: 600; }
+    .roi-table .green { color: #16a34a; font-weight: 600; }
+    .roi-table tr:last-child td { border-bottom: 2px solid #e5e7eb; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ============ SIDEBAR ============ -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <h1>APM Launch Kit</h1>
+    <div class="brand-sub">Checkout SDK Portal</div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="sidebar-section">Explore</div>
+    <button class="nav-btn active" onclick="switchTab('overview', this)"><span class="nav-icon">&#9673;</span> Overview</button>
+    <button class="nav-btn" onclick="switchTab('e2e', this)"><span class="nav-icon">&#9881;</span> E2E Testing</button>
+
+    <div class="nav-divider"></div>
+    <div class="sidebar-section">Documentation</div>
+    <button class="nav-btn" onclick="switchTab('confluence', this)"><span class="nav-icon">&#9782;</span> Confluence</button>
+    <button class="nav-btn" onclick="switchTab('prd', this)"><span class="nav-icon">&#9776;</span> PRD</button>
+
+    <div class="nav-divider"></div>
+    <div class="sidebar-section">Technical</div>
+    <button class="nav-btn" onclick="switchTab('sdk', this)"><span class="nav-icon">&#10100;</span> SDK Code</button>
+    <button class="nav-btn" onclick="switchTab('requirements', this)"><span class="nav-icon">&#9744;</span> Requirements</button>
+    <button class="nav-btn" onclick="switchTab('diagrams', this)"><span class="nav-icon">&#9707;</span> Diagrams</button>
+    <button class="nav-btn" onclick="switchTab('api', this)"><span class="nav-icon">&#10148;</span> API Docs</button>
+  </div>
+
+  <div class="sidebar-footer">
+    <a id="zepto-setup-link" href="/zepto-setup.html" target="_blank" style="display:none;font-size:11px;color:#92400e;text-decoration:none;font-weight:600;padding:6px 10px;background:#fef3c7;border-radius:6px;margin-bottom:10px;text-align:center;">&#9889; Setup Zepto Live Sandbox</a>
+    <div class="sidebar-stats">
+      <span class="stat-chip">55 APMs</span>
+      <span class="stat-chip">6 Patterns</span>
+      <span class="stat-chip">18 Events</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// Show "Setup Zepto" link if Zepto is configured but not yet bootstrapped
+fetch('/api/zepto/status').then(r => r.json()).then(s => {
+  if (s.configured && !s.ready) {
+    document.getElementById('zepto-setup-link').style.display = 'block';
+  }
+}).catch(() => {});
+</script>
+
+<!-- ============ MAIN CONTENT ============ -->
+<div class="main-content" id="main-content">
+
+<!-- Overview (LIGHT) -->
+<div id="tab-overview" class="tab-content light-tab active">
+  <div class="overview-wrap">
+
+    <!-- 30K Hero -->
+    <div style="text-align:center;margin-bottom:52px;">
+      <div class="alt-label">30,000 ft view</div>
+      <h1 class="hero-title">INNOVATE.<br>INTEGRATE.<br>LAUNCH.</h1>
+      <p class="hero-sub">
+        Integrate 55 alternative payment methods across 50+ countries in days, not months.
+        One SDK. One event contract. One test harness. Zero redundant engineering.
+      </p>
+      <div class="hero-metrics">
+        <div class="hero-metric"><div class="val">90%</div><div class="lbl">Faster per-APM<br>integration</div></div>
+        <div class="hero-metric"><div class="val">55</div><div class="lbl">Payment methods<br>ready to deploy</div></div>
+        <div class="hero-metric"><div class="val">6</div><div class="lbl">Integration patterns<br>one API</div></div>
+        <div class="hero-metric"><div class="val">2</div><div class="lbl">Engineers needed<br>3-4 months</div></div>
+      </div>
+    </div>
+
+    <!-- Problem -->
+    <div class="problem-box">
+      <h2>The Problem We Solved</h2>
+      <p>Every payment method used to be a standalone 4-6 week engineering project: read the provider docs, build the integration, handle errors, write tests, deploy. With 55 APMs required for global coverage, that's <strong>212-318 engineering weeks</strong> of serial effort. The SDK framework eliminates this by providing a shared adapter architecture: the PPRO factory alone covers 39 APMs through configuration instead of custom code. The remaining 16 use direct-integration adapters that still share the same event bus, error taxonomy, and test infrastructure.</p>
+    </div>
+
+    <!-- 20K Patterns -->
+    <div style="margin-bottom:40px;">
+      <div class="alt-label">20,000 ft view</div>
+      <h2 class="section-title">How the Architecture Works</h2>
+      <p style="color:#4b5563;margin-bottom:16px;">Every payment method in the world follows one of <strong>6 patterns</strong>. The SDK normalizes all of them behind a single public API with two key format conversions:</p>
+
+      <div class="card-grid-3" style="margin:20px 0;">
+        <div class="pattern-card" style="border-left-color:#3b82f6;"><div class="name" style="color:#3b82f6;">Server BNPL</div><div class="apms">Klarna, Afterpay, Affirm, Sezzle, Zip, PayPal Pay Later</div><div class="desc">Widget loads -> customer approves installments -> capture</div></div>
+        <div class="pattern-card" style="border-left-color:#22c55e;"><div class="name" style="color:#22c55e;">Redirect Wallet</div><div class="apms">PayPal, CashApp, Venmo, GrabPay, + PPRO wallets</div><div class="desc">Button -> redirect to wallet -> approve -> return</div></div>
+        <div class="pattern-card" style="border-left-color:#a855f7;"><div class="name" style="color:#a855f7;">Bank Redirect</div><div class="apms">iDEAL, Bancontact, EPS, BLIK, Zepto, + PPRO banks</div><div class="desc">Button -> redirect to bank -> authenticate -> return</div></div>
+        <div class="pattern-card" style="border-left-color:#f59e0b;"><div class="name" style="color:#f59e0b;">QR Code</div><div class="apms">Alipay+, WeChat Pay, Pix, UPI, TWINT</div><div class="desc">Generate QR -> customer scans with mobile -> poll for completion</div></div>
+        <div class="pattern-card" style="border-left-color:#ef4444;"><div class="name" style="color:#ef4444;">Voucher / Cash</div><div class="apms">Boleto, OXXO, Efecty, Konbini, + PPRO vouchers</div><div class="desc">Generate voucher code -> customer pays offline -> webhook confirms</div></div>
+        <div class="pattern-card" style="border-left-color:#eab308;"><div class="name" style="color:#eab308;">Native Wallet</div><div class="apms">Apple Pay, Google Pay</div><div class="desc">Browser payment sheet -> biometric auth -> tokenized payment</div></div>
+      </div>
+
+      <p style="color:#4b5563;">The flow is always: <strong>Merchant Page -> SDK -> Adapter (converts to CommerceHub format) -> CommerceHub API (converts to provider format) -> APM Provider</strong>. Responses flow back through the same two conversions. 18 universal events and 12 error codes are standardized across all 55 APMs.</p>
+    </div>
+
+    <!-- 15K Architecture Diagram (HTML/CSS) -->
+    <div style="margin-bottom:40px;">
+      <div class="alt-label">15,000 ft view</div>
+      <h2 class="section-title">System Architecture</h2>
+      <p style="color:#4b5563;margin-bottom:16px;">The SDK has three layers. Two format conversions happen at the boundaries.</p>
+
+      <div style="background:#1a1a2e;border-radius:16px;padding:28px;color:#e6edf3;font-size:12px;">
+        <!-- Layer 1: Merchant Page / SDK -->
+        <div style="border:2px solid #7c3aed;border-radius:12px;padding:16px;margin-bottom:0;">
+          <div style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Merchant Page (Browser)</div>
+          <div style="border:1px solid #4c1d95;border-radius:8px;padding:12px;margin-bottom:10px;background:#1e1b4b44;">
+            <div style="font-size:10px;font-weight:600;color:#c4b5fd;margin-bottom:8px;">Checkout SDK — Client-Side</div>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;background:#2e1065;border-radius:6px;padding:8px;text-align:center;"><div style="font-weight:700;color:#d8b4fe;">Event Bus</div><div style="color:#a78bfa;font-size:10px;">18 universal events</div></div>
+              <div style="flex:1;background:#2e1065;border-radius:6px;padding:8px;text-align:center;"><div style="font-weight:700;color:#d8b4fe;">Registry</div><div style="color:#a78bfa;font-size:10px;">55 registered APMs</div></div>
+              <div style="flex:1;background:#2e1065;border-radius:6px;padding:8px;text-align:center;"><div style="font-weight:700;color:#d8b4fe;">Transforms</div><div style="color:#a78bfa;font-size:10px;">mapConfig / multiply100</div></div>
+            </div>
+          </div>
+          <div style="border:1px solid #4c1d95;border-radius:8px;padding:12px;background:#1e1b4b44;">
+            <div style="font-size:10px;font-weight:600;color:#c4b5fd;margin-bottom:8px;">Adapter Layer</div>
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;background:#2e1065;border-radius:6px;padding:8px;text-align:center;"><div style="font-weight:700;color:#d8b4fe;">16 Direct Adapters</div><div style="color:#a78bfa;font-size:10px;">Klarna, PayPal, CashApp, Apple Pay, Google Pay, Zepto</div></div>
+              <div style="flex:1;background:#2e1065;border-radius:6px;padding:8px;text-align:center;"><div style="font-weight:700;color:#d8b4fe;">39 PPRO Factory</div><div style="color:#a78bfa;font-size:10px;">iDEAL, Pix, Boleto, OXXO, Bancontact + 34 more</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conversion Arrow 1 -->
+        <div style="text-align:center;padding:10px 0;">
+          <div style="display:inline-block;background:#f59e0b;color:#000;font-weight:700;font-size:11px;padding:6px 16px;border-radius:20px;">&#9660; Conversion 1: Merchant &#8594; CommerceHub Format (mapConfig)</div>
+        </div>
+
+        <!-- Layer 2: CommerceHub API -->
+        <div style="border:2px solid #16a34a;border-radius:12px;padding:16px;margin-bottom:0;">
+          <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">CommerceHub API (Server-Side)</div>
+          <div style="display:flex;gap:8px;">
+            <div style="flex:1;background:#052e16;border:1px solid #166534;border-radius:6px;padding:8px;text-align:center;"><div style="font-weight:700;color:#86efac;">Format Transform</div><div style="color:#4ade80;font-size:10px;">CH &#8594; Provider</div></div>
+            <div style="flex:1;background:#052e16;border:1px solid #166534;border-radius:6px;padding:8px;text-align:center;"><div style="font-weight:700;color:#86efac;">Auth Dispatcher</div><div style="color:#4ade80;font-size:10px;">OAuth2 / Basic / Bearer / HMAC</div></div>
+            <div style="flex:1;background:#052e16;border:1px solid #166534;border-radius:6px;padding:8px;text-align:center;"><div style="font-weight:700;color:#86efac;">Error Normalizer</div><div style="color:#4ade80;font-size:10px;">12 standard codes</div></div>
+          </div>
+        </div>
+
+        <!-- Conversion Arrow 2 -->
+        <div style="text-align:center;padding:10px 0;">
+          <div style="display:inline-block;background:#f59e0b;color:#000;font-weight:700;font-size:11px;padding:6px 16px;border-radius:20px;">&#9660; Conversion 2: CommerceHub &#8594; Provider Format</div>
+        </div>
+
+        <!-- Layer 3: APM Providers -->
+        <div style="border:2px solid #f59e0b;border-radius:12px;padding:16px;">
+          <div style="font-size:11px;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">APM Providers</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:80px;background:#451a03;border:1px solid #92400e;border-radius:6px;padding:6px;text-align:center;"><div style="font-weight:700;color:#fcd34d;font-size:11px;">Klarna</div><div style="color:#fbbf24;font-size:9px;">BNPL</div></div>
+            <div style="flex:1;min-width:80px;background:#451a03;border:1px solid #92400e;border-radius:6px;padding:6px;text-align:center;"><div style="font-weight:700;color:#fcd34d;font-size:11px;">PayPal</div><div style="color:#fbbf24;font-size:9px;">Wallet</div></div>
+            <div style="flex:1;min-width:80px;background:#451a03;border:1px solid #92400e;border-radius:6px;padding:6px;text-align:center;"><div style="font-weight:700;color:#fcd34d;font-size:11px;">PPRO</div><div style="color:#fbbf24;font-size:9px;">39 APMs</div></div>
+            <div style="flex:1;min-width:80px;background:#451a03;border:1px solid #92400e;border-radius:6px;padding:6px;text-align:center;"><div style="font-weight:700;color:#fcd34d;font-size:11px;">CashApp</div><div style="color:#fbbf24;font-size:9px;">QR/Wallet</div></div>
+            <div style="flex:1;min-width:80px;background:#451a03;border:1px solid #92400e;border-radius:6px;padding:6px;text-align:center;"><div style="font-weight:700;color:#fcd34d;font-size:11px;">Apple Pay</div><div style="color:#fbbf24;font-size:9px;">Native</div></div>
+            <div style="flex:1;min-width:80px;background:#451a03;border:1px solid #92400e;border-radius:6px;padding:6px;text-align:center;"><div style="font-weight:700;color:#fcd34d;font-size:11px;">Zepto</div><div style="color:#fbbf24;font-size:9px;">PayTo/Bank</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10K Role Cards -->
+    <div style="margin-bottom:40px;">
+      <div class="alt-label">10,000 ft view</div>
+      <h2 class="section-title">What This Means for Your Team</h2>
+      <div class="card-grid-3">
+        <div class="role-card" style="border-top-color:#22c55e;">
+          <div class="role-title" style="color:#16a34a;">For Engineers</div>
+          <ul>
+            <li><strong>PPRO APMs</strong>: 1 day to add (13-line config file)</li>
+            <li><strong>Direct APMs</strong>: 2-3 days (full adapter, ~70-290 lines)</li>
+            <li><strong>Zero boilerplate</strong>: Event bus, error handling, transforms are pre-built</li>
+            <li><strong>TypeScript-first</strong>: Full type safety, .d.ts declarations, 0 compile errors</li>
+            <li><strong>Test harness</strong>: 239 API tests, 49 unit tests, automated callback sweep</li>
+          </ul>
+          <div class="card-footer">Start: <a href="#" onclick="switchTab('sdk',document.querySelectorAll('.nav-btn')[4]);return false">SDK Code</a> | <a href="#" onclick="switchTab('confluence',document.querySelectorAll('.nav-btn')[2]);return false">How to Add an APM</a></div>
+        </div>
+        <div class="role-card" style="border-top-color:#3b82f6;">
+          <div class="role-title" style="color:#2563eb;">For Product Managers</div>
+          <ul>
+            <li><strong>3-4 months</strong> for full 55-APM coverage (was 4-6 years serial)</li>
+            <li><strong>Market entry</strong>: Launch any region with pre-built APMs for that market</li>
+            <li><strong>Requirements matrix</strong>: 329-row spec across 5 dimensions</li>
+            <li><strong>PRD included</strong>: 500+ line product requirements document</li>
+            <li><strong>Per-APM specs</strong>: 55 structured specs with sandbox data and test scenarios</li>
+          </ul>
+          <div class="card-footer">Start: <a href="#" onclick="switchTab('prd',document.querySelectorAll('.nav-btn')[3]);return false">PRD</a> | <a href="#" onclick="switchTab('requirements',document.querySelectorAll('.nav-btn')[5]);return false">Requirements Matrix</a></div>
+        </div>
+        <div class="role-card" style="border-top-color:#a855f7;">
+          <div class="role-title" style="color:#7c3aed;">For QA Engineers</div>
+          <ul>
+            <li><strong>E2E test page</strong>: Select any APM, run Init->Render->Authorize->Return</li>
+            <li><strong>Automated sweep</strong>: Tests all 55 adapters with one click</li>
+            <li><strong>Callback simulator</strong>: Inject events (QR scan, redirect, voucher expire)</li>
+            <li><strong>Sandbox credentials</strong>: Klarna, CashApp, Google Pay live sandbox built in</li>
+            <li><strong>Sequence diagrams</strong>: 55 Mermaid flow diagrams showing exact E2E behavior</li>
+          </ul>
+          <div class="card-footer">Start: <a href="#" onclick="switchTab('e2e',document.querySelectorAll('.nav-btn')[1]);return false">E2E Testing</a> | <a href="#" onclick="switchTab('diagrams',document.querySelectorAll('.nav-btn')[6]);return false">Diagrams</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7.5K JTBD -->
+    <div style="margin-bottom:40px;">
+      <div class="alt-label">7,500 ft view</div>
+      <h2 class="section-title">Why This Exists — Jobs to be Done</h2>
+      <p style="color:#6b7280;font-size:13px;margin:0 0 20px;">Each team "hires" this SDK to accomplish a specific job. The framework below maps the product management reasoning.</p>
+
+      <div class="card-grid-3" style="margin-bottom:28px;">
+        <div class="jtbd-card" style="border-left-color:#22c55e;">
+          <div class="icon">&#9874;</div>
+          <div class="job-title" style="color:#16a34a;">Engineer's Job</div>
+          <div class="job-text"><strong>When</strong> I'm tasked with adding a new payment method, <strong>I want to</strong> integrate it quickly using familiar patterns, <strong>so I can</strong> ship on schedule without production incidents.</div>
+          <div class="job-dims">Functional: Reduce time from weeks to days<br>Emotional: Confidence, not anxiety<br>Social: Ship fast and clean</div>
+        </div>
+        <div class="jtbd-card" style="border-left-color:#3b82f6;">
+          <div class="icon">&#9776;</div>
+          <div class="job-title" style="color:#2563eb;">Product Manager's Job</div>
+          <div class="job-text"><strong>When</strong> I'm expanding into a new market, <strong>I want to</strong> know which APMs matter and how fast we can launch them, <strong>so I can</strong> make confident go/no-go decisions and hit revenue targets.</div>
+          <div class="job-dims">Functional: Predict timelines, know coverage<br>Emotional: Feel in control<br>Social: Present with data, not guesses</div>
+        </div>
+        <div class="jtbd-card" style="border-left-color:#a855f7;">
+          <div class="icon">&#9745;</div>
+          <div class="job-title" style="color:#7c3aed;">QA Engineer's Job</div>
+          <div class="job-text"><strong>When</strong> a new APM is ready for testing, <strong>I want to</strong> validate every flow state against consistent patterns, <strong>so I can</strong> certify production-readiness without deep domain expertise.</div>
+          <div class="job-dims">Functional: Systematic validation<br>Emotional: Nothing slipped through<br>Social: Thorough and reliable</div>
+        </div>
+      </div>
+
+      <!-- Four Forces -->
+      <h3 style="font-size:17px;font-weight:700;margin:0 0 12px;color:#1f2937;">Switching Forces — Why Teams Adopt</h3>
+      <div class="card-grid-2" style="margin-bottom:28px;position:relative;">
+        <div class="force-center">SWITCH?</div>
+        <div class="force-card force-push"><div class="force-title">PUSH — Pain with Current Approach</div><ul><li>4-6 weeks per APM — unsustainable at scale</li><li>Scattered, incomplete provider documentation</li><li>Every integration is a "first time" — no muscle memory</li><li>Production incidents from unknown edge cases</li></ul></div>
+        <div class="force-card force-pull"><div class="force-title">PULL — Attraction of the SDK</div><ul><li>2-3 days per APM — learn one pattern, integrate 55</li><li>Battle-tested edge case handling baked in</li><li>TypeScript type safety reduces runtime surprises</li><li>Self-serve test harness — no provider sandbox setup</li></ul></div>
+        <div class="force-card force-anxiety"><div class="force-title">ANXIETY — Fears About Switching</div><ul><li>"Will this abstraction leak at the worst possible time?"</li><li>"Am I giving up control I'll need later?"</li><li>"Is this maintained? Will it keep up with API changes?"</li><li>"Will my team judge me for not building it ourselves?"</li></ul></div>
+        <div class="force-card force-habit"><div class="force-title">HABIT — Inertia of Current Approach</div><ul><li>"We already have a Stripe integration that works"</li><li>"Our payment team knows how to do custom integrations"</li><li>"We have internal tooling that's good enough"</li><li>"Switching costs: we'd have to re-certify everything"</li></ul></div>
+      </div>
+
+      <!-- Strategy Canvas -->
+      <h3 style="font-size:17px;font-weight:700;margin:0 0 12px;color:#1f2937;">Blue Ocean Strategy Canvas</h3>
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:8px;">
+        <table class="canvas-table">
+          <thead><tr><th style="width:25%;">Factor</th><th style="text-align:center;width:25%;">Custom Build</th><th style="text-align:center;width:25%;">PSP Bundle (Stripe)</th><th style="text-align:center;width:25%;">This SDK</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">APM Coverage</td><td style="text-align:center;"><span class="bar bar-low" style="width:25%;"></span><span class="bar-label" style="color:#dc2626;">Low</span></td><td style="text-align:center;"><span class="bar bar-med" style="width:50%;"></span><span class="bar-label" style="color:#d97706;">Med</span></td><td style="text-align:center;"><span class="bar bar-high" style="width:90%;"></span><span class="bar-label" style="color:#16a34a;font-weight:600;">High</span></td></tr>
+            <tr><td style="font-weight:600;">Integration Speed</td><td style="text-align:center;"><span class="bar bar-low" style="width:15%;"></span><span class="bar-label" style="color:#dc2626;">Low</span></td><td style="text-align:center;"><span class="bar bar-med" style="width:50%;"></span><span class="bar-label" style="color:#d97706;">Med</span></td><td style="text-align:center;"><span class="bar bar-high" style="width:95%;"></span><span class="bar-label" style="color:#16a34a;font-weight:600;">High</span></td></tr>
+            <tr><td style="font-weight:600;">Vendor Independence</td><td style="text-align:center;"><span class="bar bar-high" style="width:90%;"></span><span class="bar-label" style="color:#6b7280;">High</span></td><td style="text-align:center;"><span class="bar bar-low" style="width:15%;"></span><span class="bar-label" style="color:#dc2626;">Low</span></td><td style="text-align:center;"><span class="bar bar-high" style="width:90%;"></span><span class="bar-label" style="color:#16a34a;font-weight:600;">High</span></td></tr>
+            <tr><td style="font-weight:600;">Edge Case Handling</td><td style="text-align:center;"><span class="bar bar-low" style="width:25%;"></span><span class="bar-label" style="color:#dc2626;">Low</span></td><td style="text-align:center;"><span class="bar bar-high" style="width:75%;"></span><span class="bar-label" style="color:#6b7280;">High</span></td><td style="text-align:center;"><span class="bar bar-high" style="width:90%;"></span><span class="bar-label" style="color:#16a34a;font-weight:600;">High</span></td></tr>
+            <tr><td style="font-weight:600;">Market Intelligence</td><td style="text-align:center;"><span class="bar bar-low" style="width:10%;"></span><span class="bar-label" style="color:#dc2626;">Low</span></td><td style="text-align:center;"><span class="bar bar-low" style="width:20%;"></span><span class="bar-label" style="color:#dc2626;">Low</span></td><td style="text-align:center;"><span class="bar bar-high" style="width:80%;"></span><span class="bar-label" style="color:#16a34a;font-weight:600;">High</span></td></tr>
+            <tr><td style="font-weight:600;">Processing Control</td><td style="text-align:center;"><span class="bar bar-high" style="width:90%;"></span><span class="bar-label" style="color:#6b7280;">High</span></td><td style="text-align:center;"><span class="bar bar-low" style="width:20%;"></span><span class="bar-label" style="color:#dc2626;">Low</span></td><td style="text-align:center;"><span class="bar" style="width:5%;background:#d1d5db;"></span><span class="bar-label" style="color:#9ca3af;">N/A</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:11px;color:#9ca3af;text-align:center;">The SDK creates a new value curve by competing on dimensions incumbents ignore while deliberately not competing on processing.</p>
+    </div>
+
+    <!-- 2.5K ERRC -->
+    <div style="margin-bottom:40px;">
+      <div class="alt-label">2,500 ft view</div>
+      <h2 class="section-title">The Four Actions — What We Changed</h2>
+      <div class="card-grid-2">
+        <div class="errc-card" style="border-top-color:#ef4444;"><div class="errc-title" style="color:#dc2626;">ELIMINATE</div><ul><li>Per-APM learning curve — pattern abstraction removes it</li><li>Provider-specific documentation dependency</li><li>Custom webhook handling per payment method</li><li>Redundant error parsing logic across integrations</li></ul></div>
+        <div class="errc-card" style="border-top-color:#f59e0b;"><div class="errc-title" style="color:#d97706;">REDUCE</div><ul><li>Integration time: 4-6 weeks to 2-3 days per APM</li><li>QA complexity: 55 unique test plans to 6 pattern-based plans</li><li>Decision uncertainty: research projects to data lookups</li><li>Onboarding time for new payment engineers</li></ul></div>
+        <div class="errc-card" style="border-top-color:#3b82f6;"><div class="errc-title" style="color:#2563eb;">RAISE</div><ul><li>APM coverage breadth: 55 methods across 50+ countries</li><li>Integration predictability: consistent timelines per pattern</li><li>Cross-market payment intelligence</li><li>Test coverage: automated sweep across all adapters</li></ul></div>
+        <div class="errc-card" style="border-top-color:#22c55e;"><div class="errc-title" style="color:#16a34a;">CREATE</div><ul><li>Pattern-based integration taxonomy — the 6-pattern model</li><li>Unified event architecture — 18 events across all 55 APMs</li><li>Self-serve APM market intelligence — no consultant needed</li><li>Segment-specific portal — engineer, PM, and QA views in one place</li></ul></div>
+      </div>
+    </div>
+
+    <!-- 5K Portal Guide -->
+    <div style="margin-bottom:40px;">
+      <div class="alt-label">5,000 ft view</div>
+      <h2 class="section-title">How to Use This Portal</h2>
+      <p style="color:#4b5563;margin-bottom:16px;">Each section serves a specific purpose. Pick your starting point based on what you need:</p>
+      <div class="card-grid-2">
+        <div class="guide-card" onclick="switchTab('e2e',document.querySelectorAll('.nav-btn')[1])"><div class="guide-title">E2E Testing</div><div class="guide-desc">Interactive test page. Select any of the 55 APMs, run the full Init->Render->Authorize flow, simulate callbacks, run automated sweep.</div></div>
+        <div class="guide-card" onclick="switchTab('confluence',document.querySelectorAll('.nav-btn')[2])"><div class="guide-title">Confluence</div><div class="guide-desc">Onboarding hub. How to add a PPRO APM (1 day) or direct-integration APM (2-3 days). Quick links, FAQ, and 6 pattern flow diagrams.</div></div>
+        <div class="guide-card" onclick="switchTab('prd',document.querySelectorAll('.nav-btn')[3])"><div class="guide-title">PRD</div><div class="guide-desc">Full product requirements document (500+ lines). APM inventory, architecture, event contract, error taxonomy, rollout plan, ROI analysis.</div></div>
+        <div class="guide-card" onclick="switchTab('sdk',document.querySelectorAll('.nav-btn')[4])"><div class="guide-title">SDK Code</div><div class="guide-desc">Browse the TypeScript source and compiled JavaScript. Core framework + all 55 adapter files with syntax highlighting.</div></div>
+        <div class="guide-card" onclick="switchTab('requirements',document.querySelectorAll('.nav-btn')[5])"><div class="guide-title">Requirements Matrix</div><div class="guide-desc">329-row exhaustive requirements across 5 sections: callback support, SDK metadata, button styling, server handoff endpoints, and timeout budgets.</div></div>
+        <div class="guide-card" onclick="switchTab('diagrams',document.querySelectorAll('.nav-btn')[6])"><div class="guide-title">Diagrams</div><div class="guide-desc">55 Mermaid sequence diagrams showing the full E2E payment flow per APM, including both format conversions.</div></div>
+        <div class="guide-card" style="grid-column:span 2;" onclick="switchTab('api',document.querySelectorAll('.nav-btn')[7])"><div class="guide-title">API Docs</div><div class="guide-desc">Swagger UI for all test harness endpoints. Klarna, CashApp, PPRO (live sandboxes), PayPal, Zepto, Apple Pay, Google Pay, and mock endpoints.</div></div>
+      </div>
+    </div>
+
+    <!-- Ground Level ROI -->
+    <div>
+      <div class="alt-label">Ground level</div>
+      <h2 class="section-title">The Bottom Line</h2>
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;">
+        <table class="roi-table">
+          <thead><tr><th>Task</th><th style="text-align:center;">Without SDK</th><th style="text-align:center;">With SDK</th></tr></thead>
+          <tbody>
+            <tr><td>Provider SDK integration</td><td class="red" style="text-align:center;">5-7 days</td><td class="green" style="text-align:center;">0.5 days (pre-built)</td></tr>
+            <tr><td>API contract + testing</td><td class="red" style="text-align:center;">5-7 days</td><td class="green" style="text-align:center;">0.5 days (shared harness)</td></tr>
+            <tr><td>Data transformation</td><td class="red" style="text-align:center;">2-3 days</td><td class="green" style="text-align:center;">0.5 days (shared mappers)</td></tr>
+            <tr><td>Error handling</td><td class="red" style="text-align:center;">2-3 days</td><td class="green" style="text-align:center;">0 days (error taxonomy)</td></tr>
+            <tr><td>UI/UX + callbacks</td><td class="red" style="text-align:center;">3-5 days</td><td class="green" style="text-align:center;">0.5 days (event bus)</td></tr>
+            <tr><td>Testing + QA</td><td class="red" style="text-align:center;">3-5 days</td><td class="green" style="text-align:center;">0.5 days (auto sweep)</td></tr>
+            <tr><td><strong>Total per APM</strong></td><td class="red" style="text-align:center;">21-33 days (4-6 weeks)</td><td class="green" style="text-align:center;">2.5 days</td></tr>
+            <tr><td><strong>Full 55-APM portfolio</strong></td><td class="red" style="text-align:center;">4-6 years (1 engineer)</td><td class="green" style="text-align:center;">3-4 months (2 engineers)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="color:#9ca3af;font-size:13px;text-align:center;">This portal is the single source of truth for the APM checkout platform. Everything your team needs to understand, build, test, and ship payment methods is here.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- E2E Testing (LIGHT) -->
+<div id="tab-e2e" class="tab-content light-tab">
+  <iframe src="/checkout-sdk-test.html" class="e2e-frame"></iframe>
+</div>
+
+<!-- Confluence (LIGHT) -->
+<div id="tab-confluence" class="tab-content light-tab">
+  <div class="md-container" id="confluence-content"><div class="loading">Loading Confluence hub...</div></div>
+</div>
+
+<!-- PRD (LIGHT) -->
+<div id="tab-prd" class="tab-content light-tab">
+  <div class="prd-layout">
+    <div class="prd-toc" id="prd-toc"><h3>Contents</h3></div>
+    <div class="prd-body"><div class="md-container" id="prd-content"><div class="loading">Loading PRD...</div></div></div>
+  </div>
+</div>
+
+<!-- SDK Code (DARK) -->
+<div id="tab-sdk" class="tab-content dark-tab">
+  <div class="code-layout">
+    <div class="code-sidebar">
+      <div class="toggle-bar">
+        <button class="toggle-btn active" onclick="toggleSdkView('src')">TypeScript (src)</button>
+        <button class="toggle-btn" onclick="toggleSdkView('dist')">JavaScript (dist)</button>
+      </div>
+      <div id="sdk-tree" class="file-tree"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="code-viewer" id="code-viewer"><div class="loading">Select a file to view its source code</div></div>
+  </div>
+</div>
+
+<!-- Requirements (DARK) -->
+<div id="tab-requirements" class="tab-content dark-tab">
+  <div class="tracker-container">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+      <h2 style="font-size:18px;margin:0;color:#e6edf3;">Requirements Matrix</h2>
+      <div class="req-section-tabs" id="req-section-tabs"></div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="tracker-table" id="req-table"><thead><tr></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- Diagrams (DARK) -->
+<div id="tab-diagrams" class="tab-content dark-tab">
+  <div style="display:flex;height:100%;">
+    <div style="width:240px;min-width:240px;background:#161b22;border-right:1px solid #30363d;overflow-y:auto;padding:12px;">
+      <h3 style="font-size:13px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Select APM</h3>
+      <div id="diagram-apm-list"></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:24px;">
+      <div id="diagram-viewer" style="background:#161b22;border-radius:8px;padding:24px;min-height:400px;">
+        <div class="loading">Select an APM from the left to view its sequence diagram</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- API Docs (DARK) -->
+<div id="tab-api" class="tab-content dark-tab">
+  <div class="api-docs-container" id="swagger-container"></div>
+</div>
+
+</div><!-- end main-content -->
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+
+<script>
+// ================================================================
+// TAB SWITCHING
+// ================================================================
+const loaded = {};
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+
+  if (!loaded[tab]) {
+    loaded[tab] = true;
+    if (tab === 'confluence') loadConfluence();
+    else if (tab === 'prd') loadPRD();
+    else if (tab === 'sdk') loadSDKTree();
+    else if (tab === 'requirements') loadRequirements();
+    else if (tab === 'diagrams') loadDiagrams();
+    else if (tab === 'api') loadAPIDocs();
+  }
+}
+
+// ================================================================
+// MERMAID + MARKDOWN
+// ================================================================
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  sequence: { mirrorActors: true, showSequenceNumbers: false, actorMargin: 40, messageMargin: 30 },
+  themeVariables: {
+    actorBkg: '#2d2150', actorBorder: '#7c3aed', actorTextColor: '#e6edf3',
+    signalColor: '#e6edf3', signalTextColor: '#e6edf3',
+    labelBoxBkgColor: '#1e1b4b', labelBoxBorderColor: '#7c3aed', labelTextColor: '#e6edf3',
+    loopTextColor: '#fbbf24',
+    noteBkgColor: '#451a03', noteTextColor: '#fcd34d', noteBorderColor: '#92400e',
+    activationBkgColor: '#2e1065', activationBorderColor: '#7c3aed',
+    sequenceNumberColor: '#fbbf24'
+  }
+});
+
+async function renderMarkdown(containerId, url) {
+  const resp = await fetch(url);
+  const md = await resp.text();
+  const el = document.getElementById(containerId);
+  el.innerHTML = marked.parse(md);
+  // Convert mermaid code blocks to .mermaid divs inside dark containers
+  const mermaidBlocks = el.querySelectorAll('code.language-mermaid');
+  for (const block of mermaidBlocks) {
+    const pre = block.parentElement;
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'overflow-x:auto;margin:16px 0;background:#1a1a2e;border-radius:12px;padding:20px;';
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = block.textContent;
+    wrapper.appendChild(div);
+    pre.replaceWith(wrapper);
+  }
+  // Use mermaid.run() on the visible DOM — this produces proper arrow markers
+  await mermaid.run({ nodes: el.querySelectorAll('.mermaid') });
+}
+
+// ================================================================
+// CONFLUENCE
+// ================================================================
+async function loadConfluence() { await renderMarkdown('confluence-content', '/api/docs/confluence'); }
+
+// ================================================================
+// PRD
+// ================================================================
+async function loadPRD() {
+  await renderMarkdown('prd-content', '/api/docs/prd');
+  const content = document.getElementById('prd-content');
+  const toc = document.getElementById('prd-toc');
+  const headings = content.querySelectorAll('h1, h2, h3');
+  let tocHtml = '<h3>Contents</h3>';
+  headings.forEach((h, i) => {
+    h.id = 'heading-' + i;
+    const cls = h.tagName === 'H3' ? ' class="h3"' : '';
+    tocHtml += '<a href="#heading-' + i + '"' + cls + '>' + h.textContent + '</a>';
+  });
+  toc.innerHTML = tocHtml;
+  toc.addEventListener('click', (e) => {
+    if (e.target.tagName === 'A') { e.preventDefault(); document.querySelector(e.target.getAttribute('href')).scrollIntoView({ behavior: 'smooth' }); }
+  });
+}
+
+// ================================================================
+// SDK CODE
+// ================================================================
+let sdkTree = null;
+let currentSdkView = 'src';
+async function loadSDKTree() { const resp = await fetch('/api/docs/sdk-tree'); sdkTree = await resp.json(); renderTree(currentSdkView); }
+function toggleSdkView(view) { currentSdkView = view; document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active')); event.target.classList.add('active'); renderTree(view); }
+function renderTree(view) { document.getElementById('sdk-tree').innerHTML = renderTreeItems(sdkTree[view]); }
+function renderTreeItems(items) {
+  let html = '';
+  for (const item of items) {
+    if (item.type === 'dir') { html += '<div class="dir" onclick="toggleDir(this)">' + item.name + '</div><div class="children">' + renderTreeItems(item.children) + '</div>'; }
+    else { html += '<div class="file" onclick="loadFile(\'' + item.path.replace(/'/g, "\\'") + '\')" title="' + (item.size/1024).toFixed(1) + ' KB">' + item.name + '</div>'; }
+  }
+  return html;
+}
+function toggleDir(el) { el.classList.toggle('open'); el.nextElementSibling.classList.toggle('open'); }
+async function loadFile(filePath) {
+  document.querySelectorAll('.file').forEach(f => f.classList.remove('active'));
+  event?.target?.classList?.add('active');
+  const viewer = document.getElementById('code-viewer');
+  viewer.innerHTML = '<div class="loading">Loading...</div>';
+  const resp = await fetch('/api/docs/sdk/' + filePath);
+  const code = await resp.text();
+  const ext = filePath.split('.').pop();
+  const lang = ext === 'ts' ? 'typescript' : ext === 'js' ? 'javascript' : ext === 'json' ? 'json' : 'plaintext';
+  const highlighted = Prism.highlight(code, Prism.languages[lang] || Prism.languages.plaintext, lang);
+  viewer.innerHTML = '<div class="file-path">' + filePath + '</div><pre class="language-' + lang + '"><code>' + highlighted + '</code></pre>';
+}
+
+// ================================================================
+// REQUIREMENTS MATRIX
+// ================================================================
+let reqSections = [];
+async function loadRequirements() {
+  const resp = await fetch('/api/docs/requirements');
+  const csv = await resp.text();
+  const lines = csv.trim().split('\n');
+  reqSections = []; let currentSection = null;
+  for (const line of lines) {
+    if (line.startsWith('===')) { currentSection = { name: line.replace(/=+/g, '').trim(), headers: [], rows: [] }; reqSections.push(currentSection); }
+    else if (currentSection && !currentSection.headers.length) { currentSection.headers = line.split(','); }
+    else if (currentSection && line.trim()) { const cols = line.split(','); const row = {}; currentSection.headers.forEach((h, i) => row[h] = cols[i] || ''); currentSection.rows.push(row); }
+  }
+  document.getElementById('req-section-tabs').innerHTML = reqSections.map((s, i) =>
+    '<button class="req-section-tab' + (i === 0 ? ' active' : '') + '" onclick="switchReqSection(' + i + ', this)">' + s.name + '</button>'
+  ).join('');
+  renderReqSection(0);
+}
+function switchReqSection(idx, btn) { document.querySelectorAll('.req-section-tab').forEach(b => b.classList.remove('active')); if (btn) btn.classList.add('active'); renderReqSection(idx); }
+function renderReqSection(idx) {
+  const section = reqSections[idx]; if (!section) return;
+  const table = document.getElementById('req-table');
+  let thead = '<tr>'; section.headers.forEach(h => { thead += '<th>' + h + '</th>'; }); thead += '</tr>';
+  table.querySelector('thead').innerHTML = thead;
+  let tbody = ''; section.rows.forEach(row => { tbody += '<tr>'; section.headers.forEach(h => { const val = row[h] || ''; if (val === 'Yes') tbody += '<td><span class="yes-badge">Yes</span></td>'; else if (val === 'No') tbody += '<td><span class="no-badge">No</span></td>'; else tbody += '<td>' + val + '</td>'; }); tbody += '</tr>'; });
+  table.querySelector('tbody').innerHTML = tbody;
+}
+
+// ================================================================
+// DIAGRAMS
+// ================================================================
+const DIAGRAM_APMS = {
+  'Global': [{name:'Klarna',code:'klarna'},{name:'PayPal',code:'paypal'},{name:'PayPal Pay Later',code:'paypal-paylater'},{name:'Afterpay',code:'afterpay'},{name:'Affirm',code:'affirm'},{name:'Cash App',code:'cashapp'},{name:'Venmo',code:'venmo'},{name:'Apple Pay',code:'applepay'},{name:'Google Pay',code:'googlepay'},{name:'Sezzle',code:'sezzle'},{name:'Zip',code:'zip'},{name:'TabaPay',code:'tabapay'}],
+  'Europe': [{name:'iDEAL',code:'ideal'},{name:'Bancontact',code:'bancontact'},{name:'EPS',code:'eps'},{name:'BLIK',code:'blik'},{name:'Trustly',code:'trustly'},{name:'Wero',code:'wero'},{name:'Sofort',code:'sofort'},{name:'Giropay',code:'giropay'},{name:'Przelewy24',code:'przelewy24'},{name:'PostFinance',code:'postfinance'},{name:'MB WAY',code:'mbway'},{name:'Swish',code:'swish'},{name:'Vipps',code:'vipps'},{name:'MobilePay',code:'mobilepay'},{name:'TWINT',code:'twint'},{name:'Multibanco',code:'multibanco'}],
+  'LATAM': [{name:'Pix',code:'pix'},{name:'Boleto',code:'boleto'},{name:'OXXO',code:'oxxo'},{name:'SPEI',code:'spei'},{name:'PSE',code:'pse'},{name:'Efecty',code:'efecty'},{name:'Mercado Pago',code:'mercadopago'},{name:'RapiPago',code:'rapipago'},{name:'PagoEfectivo',code:'pagoefectivo'},{name:'Webpay',code:'webpay'}],
+  'APAC': [{name:'Alipay+',code:'alipayplus'},{name:'Alipay',code:'alipay'},{name:'WeChat Pay',code:'wechatpay'},{name:'GrabPay',code:'grabpay'},{name:'PayNow',code:'paynow'},{name:'GCash',code:'gcash'},{name:'Maya',code:'maya'},{name:'LINE Pay',code:'linepay'},{name:'KakaoPay',code:'kakaopay'},{name:'DANA',code:'dana'},{name:'OVO',code:'ovo'},{name:'ShopeePay',code:'shopeepay'},{name:'Konbini',code:'konbini'},{name:'PayPay',code:'paypay'},{name:'UPI',code:'upi'},{name:"Touch 'n Go",code:'touchngo'},{name:'Zepto',code:'zepto'}],
+};
+function loadDiagrams() {
+  const list = document.getElementById('diagram-apm-list'); let html = '';
+  for (const [region, apms] of Object.entries(DIAGRAM_APMS)) {
+    html += '<div class="diagram-region-label">' + region + ' (' + apms.length + ')</div>';
+    for (const apm of apms) html += '<button class="diagram-apm-btn" onclick="loadDiagram(\'' + apm.code + '\', this)">' + apm.name + '</button>';
+  }
+  list.innerHTML = html;
+}
+async function loadDiagram(code, btn) {
+  document.querySelectorAll('.diagram-apm-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const viewer = document.getElementById('diagram-viewer');
+  viewer.innerHTML = '<div class="loading">Loading diagram...</div>';
+  try {
+    const resp = await fetch('/api/docs/diagrams/' + code);
+    const mmd = await resp.text();
+    viewer.innerHTML = '<h3 style="margin-bottom:16px;color:#e6edf3;">' + code + ' — E2E Payment Flow</h3><div style="overflow-x:auto;"><div class="mermaid">' + mmd + '</div></div>';
+    await mermaid.run({ nodes: viewer.querySelectorAll('.mermaid') });
+  } catch (err) { viewer.innerHTML = '<div class="loading">Diagram not found for ' + code + '</div>'; }
+}
+
+// ================================================================
+// API DOCS
+// ================================================================
+function loadAPIDocs() {
+  SwaggerUIBundle({ url: '/api/docs/openapi', dom_id: '#swagger-container', deepLinking: true, presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset], layout: 'BaseLayout' });
+}
+</script>
+</body>
+</html>

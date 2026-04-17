@@ -22,7 +22,7 @@
 import type { AdapterCapabilities } from '@commercehub/shared-types';
 import { defaultCallbacks, defaultInteractive } from '@commercehub/shared-types';
 import { TokenizationAdapterBase } from '../base/tokenization-base.js';
-import type { TokenizationToken } from '../base/provider-token.js';
+import type { BnplToken } from '../base/provider-token.js';
 import { loadScript, ScriptLoadError } from '../../core/load-script.js';
 
 interface TabaPaySSOMessage {
@@ -63,10 +63,10 @@ export class TabaPayAdapter extends TokenizationAdapterBase {
   readonly pattern = 'server-bnpl' as const;
 
   static readonly capabilities: AdapterCapabilities = {
-    pattern: 'tokenization',
+    pattern: 'bnpl',
     displayName: 'TabaPay',
     region: 'North America',
-    callbacks: defaultCallbacks('tokenization'),
+    callbacks: defaultCallbacks('bnpl'),
     sdk: {
       requiresClientScript: true,
       cdnUrl: TABAPAY_SDK_URL,
@@ -87,7 +87,7 @@ export class TabaPayAdapter extends TokenizationAdapterBase {
     }
   }
 
-  protected override async tokenize(): Promise<TokenizationToken> {
+  protected override async tokenize(): Promise<BnplToken> {
     if (!window.TabaPay) throw new Error('TabaPay SDK not loaded');
     if (!this.config.containerId) {
       throw new Error('TabaPay requires a containerId for the SSO iframe');
@@ -103,21 +103,21 @@ export class TabaPayAdapter extends TokenizationAdapterBase {
     const { ssoUrl } = (await res.json()) as { ssoUrl: string };
 
     // STEP 4-5: Render the iframe, listen for postMessage, resolve with token
-    return new Promise<TokenizationToken>((resolve, reject) => {
+    return new Promise<BnplToken>((resolve, reject) => {
       new window.TabaPay!.SSO.Iframe({
         url: ssoUrl,
         containerId: this.config.containerId!,
         onMessage: (msg) => {
           if (msg.Status === 'Success' && msg.Token) {
             resolve({
-              kind: 'tokenization',
+              kind: 'bnpl',
               provider: 'zip', // TabaPay reuses the tokenization discriminator — remap in v2.3 shared-types
               payload: {
                 ssoToken: msg.Token,
                 last4: msg.Card?.Last4,
                 network: msg.Card?.Network,
               },
-            } as TokenizationToken);
+            } as BnplToken);
           } else if (msg.Status === 'Cancel') {
             reject(new Error('TabaPay: user cancelled'));
           } else {

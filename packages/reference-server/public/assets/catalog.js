@@ -8,7 +8,7 @@
 
 const PATTERN_LABEL = {
   'redirect':     'Bank redirect',
-  'tokenization': 'Tokenization (BNPL)',
+  'bnpl':         'BNPL',
   'native-wallet':'Native wallet',
   'button-sdk':   'Button SDK',
   'qr':           'QR code',

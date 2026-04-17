@@ -21,7 +21,7 @@
  *
  * Note: Afterpay differs from Klarna/Affirm in that the token is minted
  * server-side BEFORE the modal opens; the browser just passes it through.
- * The adapter still returns a TokenizationToken for consistency.
+ * The adapter still returns a BnplToken for consistency.
  */
 
 import type { AdapterCapabilities } from '@commercehub/shared-types';
@@ -31,7 +31,7 @@ import {
 } from '@commercehub/shared-types';
 
 import { TokenizationAdapterBase } from '../base/tokenization-base.js';
-import type { TokenizationToken } from '../base/provider-token.js';
+import type { BnplToken } from '../base/provider-token.js';
 import { loadScript, ScriptLoadError } from '../../core/load-script.js';
 
 // ──────────────────── Afterpay type definitions ────────────────────
@@ -75,10 +75,10 @@ export class AfterpayAdapter extends TokenizationAdapterBase {
   readonly pattern = 'server-bnpl' as const;
 
   static readonly capabilities: AdapterCapabilities = {
-    pattern: 'tokenization',
+    pattern: 'bnpl',
     displayName: 'Afterpay',
     region: 'Global',
-    callbacks: defaultCallbacks('tokenization'),
+    callbacks: defaultCallbacks('bnpl'),
     sdk: {
       requiresClientScript: true,
       cdnUrl: AFTERPAY_SDK_URL_PROD,
@@ -136,7 +136,7 @@ export class AfterpayAdapter extends TokenizationAdapterBase {
 
   // STEP 3-5: Open the Afterpay modal with a server-minted orderToken,
   // listen for window.postMessage, and resolve with the token.
-  protected override async tokenize(): Promise<TokenizationToken> {
+  protected override async tokenize(): Promise<BnplToken> {
     if (!window.AfterPay) {
       throw new Error('Afterpay SDK not loaded');
     }
@@ -149,7 +149,7 @@ export class AfterpayAdapter extends TokenizationAdapterBase {
     window.AfterPay.open(orderToken);
 
     // STEP 5: Listen for postMessage from Afterpay's iframe
-    return new Promise<TokenizationToken>((resolve, reject) => {
+    return new Promise<BnplToken>((resolve, reject) => {
       const listener = (ev: MessageEvent) => {
         // Afterpay posts from portal.afterpay.com; trust only those origins
         const trustedOrigins = ['https://portal.afterpay.com', 'https://portal.sandbox.afterpay.com'];
@@ -161,7 +161,7 @@ export class AfterpayAdapter extends TokenizationAdapterBase {
         if (msg.status === 'SUCCESS' && msg.orderToken) {
           window.removeEventListener('message', listener);
           resolve({
-            kind: 'tokenization',
+            kind: 'bnpl',
             provider: 'afterpay',
             payload: { orderToken: msg.orderToken },
           });

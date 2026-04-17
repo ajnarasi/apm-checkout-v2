@@ -58,7 +58,7 @@ const PHASES = [
     bindToSdkLoader: true,
   },
   {
-    id: 'tokenization',
+    id: 'bnpl',
     num: '④',
     title: 'Provider tokenization',
     description:

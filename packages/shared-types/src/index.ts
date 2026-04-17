@@ -92,3 +92,18 @@ export {
   getApmMapping,
   isPproRouted,
 } from './apm-mapping.js';
+
+// ── Sandbox credentials for harness-driven real-sandbox flows ──
+export type {
+  KlarnaSandboxCreds,
+  CashAppSandboxCreds,
+  PproSandboxCreds,
+  SandboxCredentialsMap,
+  SandboxApmId,
+} from './sandbox-credentials.js';
+export {
+  SANDBOX_CREDENTIALS,
+  getSandboxCreds,
+  isSandboxApmId,
+  buildKlarnaAuthHeader,
+} from './sandbox-credentials.js';

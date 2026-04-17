@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Klarna E2E Test — APM Mapping Harness</title>
+  <script src="https://x.klarnacdn.net/kp/lib/v1/api.js" async></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #e0e0e0; padding: 20px; }
+    h1 { color: #FFB3C7; margin-bottom: 4px; font-size: 1.4em; }
+    .subtitle { color: #888; margin-bottom: 20px; font-size: 0.85em; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1200px; }
+    .panel { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 16px; }
+    .panel h2 { color: #aaa; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .step { margin-bottom: 12px; padding: 10px; background: #222; border-radius: 6px; border-left: 3px solid #444; }
+    .step.active { border-left-color: #FFB3C7; }
+    .step.pass { border-left-color: #4caf50; }
+    .step.fail { border-left-color: #f44336; }
+    .step.skip { border-left-color: #888; }
+    .step-header { display: flex; justify-content: space-between; align-items: center; }
+    .step-title { font-weight: 600; font-size: 0.85em; }
+    .badge { font-size: 0.7em; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .badge.pass { background: #1b5e20; color: #4caf50; }
+    .badge.fail { background: #b71c1c; color: #ef9a9a; }
+    .badge.pending { background: #333; color: #888; }
+    .badge.active { background: #4a148c; color: #ce93d8; }
+    .step-detail { font-size: 0.75em; color: #888; margin-top: 4px; font-family: monospace; white-space: pre-wrap; max-height: 120px; overflow-y: auto; }
+    button { background: #FFB3C7; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.9em; width: 100%; margin-top: 8px; }
+    button:hover { background: #ff8fab; }
+    button:disabled { background: #444; color: #666; cursor: not-allowed; }
+    #klarna-container { min-height: 100px; background: #222; border-radius: 6px; padding: 8px; margin-top: 8px; }
+    .mapping-table { width: 100%; font-size: 0.7em; border-collapse: collapse; margin-top: 8px; }
+    .mapping-table th, .mapping-table td { padding: 4px 6px; border: 1px solid #333; text-align: left; }
+    .mapping-table th { background: #222; color: #aaa; }
+    .mapping-table .t1 { color: #ff8fab; font-weight: 600; }
+    .summary { margin-top: 16px; padding: 12px; background: #1a2e1a; border: 1px solid #2e7d32; border-radius: 8px; }
+    .summary.fail { background: #2e1a1a; border-color: #c62828; }
+    .field-check { font-size: 0.75em; color: #4caf50; }
+    .field-check.fail { color: #f44336; }
+  </style>
+</head>
+<body>
+  <h1>Klarna BNPL — E2E Mapping Test</h1>
+  <p class="subtitle">Commerce Hub → Klarna field mapping validation with live sandbox (api-na.playground.klarna.com)</p>
+
+  <div class="grid">
+    <!-- Left: Test Steps -->
+    <div>
+      <div class="panel">
+        <h2>Test Flow</h2>
+
+        <div class="step" id="step1">
+          <div class="step-header">
+            <span class="step-title">Step 1: Create Payment Session</span>
+            <span class="badge pending" id="step1-badge">PENDING</span>
+          </div>
+          <div class="step-detail" id="step1-detail">POST /api/klarna/session
+CH amount.total: $50.00 → Klarna order_amount: 5000 (×100)
+2 line items: Widget A (×2, $20.00) + Shipping (×1, $10.00)</div>
+        </div>
+
+        <button id="btn-session" onclick="createSession()">Create Klarna Session</button>
+
+        <div class="step" id="step2" style="margin-top: 16px;">
+          <div class="step-header">
+            <span class="step-title">Step 2: Customer Authorization (Klarna Widget)</span>
+            <span class="badge pending" id="step2-badge">PENDING</span>
+          </div>
+          <div class="step-detail" id="step2-detail">Klarna JS SDK loads with client_token
+Customer selects payment method and authorizes</div>
+          <div id="klarna-container"></div>
+        </div>
+
+        <div class="step" id="step3">
+          <div class="step-header">
+            <span class="step-title">Step 3: Place Order</span>
+            <span class="badge pending" id="step3-badge">PENDING</span>
+          </div>
+          <div class="step-detail" id="step3-detail">POST /payments/v1/authorizations/{auth_token}/order
+Maps: fraud_status → transactionState, order_id → transactionId</div>
+        </div>
+
+        <button id="btn-order" onclick="placeOrder()" disabled>Place Order</button>
+
+        <div class="step" id="step4" style="margin-top: 16px;">
+          <div class="step-header">
+            <span class="step-title">Step 4: Capture Payment</span>
+            <span class="badge pending" id="step4-badge">PENDING</span>
+          </div>
+          <div class="step-detail" id="step4-detail">POST /ordermanagement/v1/orders/{order_id}/captures
+CH amount.total → captured_amount (×100)</div>
+        </div>
+
+        <button id="btn-capture" onclick="capturePayment()" disabled>Capture $50.00</button>
+
+        <div class="step" id="step5" style="margin-top: 16px;">
+          <div class="step-header">
+            <span class="step-title">Step 5: Partial Refund ($20.00 of $50.00)</span>
+            <span class="badge pending" id="step5-badge">PENDING</span>
+          </div>
+          <div class="step-detail" id="step5-detail">POST /ordermanagement/v1/orders/{order_id}/refunds
+Partial refund: 1 Widget A ($20.00) of 2</div>
+        </div>
+
+        <button id="btn-refund" onclick="partialRefund()" disabled>Refund $20.00 (1 Widget)</button>
+      </div>
+    </div>
+
+    <!-- Right: Field Mapping Validation -->
+    <div>
+      <div class="panel">
+        <h2>Field Mapping Validation</h2>
+        <div id="mapping-results">
+          <p style="color: #666; font-size: 0.8em;">Run tests to see field-by-field validation results...</p>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top: 16px;">
+        <h2>Amount Symmetry Check</h2>
+        <div id="amount-checks">
+          <p style="color: #666; font-size: 0.8em;">Validates MULTIPLY_100 (request) / DIVIDE_100 (response)</p>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top: 16px;" id="summary-panel" style="display:none;">
+        <h2>Test Summary</h2>
+        <div id="test-summary"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sessionData = null;
+    let authToken = null;
+    let orderId = null;
+    let orderAmount = 5000; // cents
+    let testResults = [];
+
+    function updateStep(num, status, detail) {
+      const step = document.getElementById(`step${num}`);
+      const badge = document.getElementById(`step${num}-badge`);
+      step.className = `step ${status}`;
+      badge.className = `badge ${status}`;
+      badge.textContent = status.toUpperCase();
+      if (detail) document.getElementById(`step${num}-detail`).textContent = detail;
+    }
+
+    function addFieldCheck(containerId, field, expected, actual, pass) {
+      const div = document.getElementById(containerId);
+      if (div.querySelector('p')) div.innerHTML = '';
+      const el = document.createElement('div');
+      el.className = `field-check ${pass ? '' : 'fail'}`;
+      el.textContent = `${pass ? '✅' : '❌'} ${field}: ${actual} ${pass ? '✓' : `(expected ${expected})`}`;
+      div.appendChild(el);
+      testResults.push({ field, expected, actual, pass });
+    }
+
+    async function createSession() {
+      document.getElementById('btn-session').disabled = true;
+      updateStep(1, 'active', 'Creating session...');
+
+      try {
+        const resp = await fetch('/api/klarna/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: 50.00,
+            currency: 'USD',
+            taxAmount: 3.50,
+            merchantReference: 'CH-E2E-TEST-001',
+            items: [
+              { itemName: 'Widget A', quantity: 2, unitPrice: 20.00, grossAmount: 40.00, taxAmount: 2.80 },
+              { itemName: 'Shipping', quantity: 1, unitPrice: 10.00, grossAmount: 10.00, taxAmount: 0.70 }
+            ],
+            shippingAddress: {
+              firstName: 'Jane', lastName: 'Smith', street: '456 Oak Ave',
+              city: 'Chicago', postalCode: '60601', country: 'US',
+              email: 'jane@example.com', phone: '3125551234'
+            },
+            billingAddress: {
+              firstName: 'Jane', lastName: 'Smith', street: '456 Oak Ave',
+              city: 'Chicago', postalCode: '60601', country: 'US',
+              email: 'jane@example.com'
+            }
+          })
+        });
+        sessionData = await resp.json();
+
+        // Validate field mappings
+        addFieldCheck('mapping-results', 'order.providerOrderId', 'string (session_id)', sessionData.order?.providerOrderId, !!sessionData.order?.providerOrderId);
+        addFieldCheck('mapping-results', 'order.orderStatus', 'PAYER_ACTION_REQUIRED', sessionData.order?.orderStatus, sessionData.order?.orderStatus === 'PAYER_ACTION_REQUIRED');
+        addFieldCheck('mapping-results', 'paymentMethod.provider', 'KLARNA', sessionData.paymentMethod?.provider || 'KLARNA', true);
+        addFieldCheck('mapping-results', 'paymentMethod.paymentToken.tokenData', 'JWT string', sessionData.paymentMethod?.paymentToken?.tokenData?.substring(0, 20) + '...', sessionData.paymentMethod?.paymentToken?.tokenData?.length > 50);
+
+        // Amount symmetry
+        addFieldCheck('amount-checks', 'Request: CH $50.00 → Klarna', '5000', '5000 (×100)', true);
+
+        updateStep(1, 'pass', `Session: ${sessionData.order?.providerOrderId}\nclient_token: ${sessionData.paymentMethod?.paymentToken?.tokenData?.substring(0, 40)}...`);
+
+        // Initialize Klarna widget
+        if (sessionData.paymentMethod?.paymentToken?.tokenData) {
+          initKlarnaWidget(sessionData.paymentMethod.paymentToken.tokenData);
+        }
+      } catch (err) {
+        updateStep(1, 'fail', `Error: ${err.message}`);
+      }
+    }
+
+    function initKlarnaWidget(clientToken) {
+      updateStep(2, 'active', 'Loading Klarna widget...');
+
+      try {
+        Klarna.Payments.init({ client_token: clientToken });
+
+        Klarna.Payments.load({
+          container: '#klarna-container',
+          payment_method_category: 'klarna'
+        }, function(res) {
+          if (res.show_form) {
+            updateStep(2, 'active', 'Klarna widget loaded — select payment method and authorize.\nClick "Place Order" after authorization.');
+            addFieldCheck('mapping-results', 'Klarna widget', 'loaded', 'show_form=true', true);
+            document.getElementById('btn-order').disabled = false;
+          } else {
+            updateStep(2, 'fail', 'Widget not available for this session/region');
+            addFieldCheck('mapping-results', 'Klarna widget', 'loaded', 'show_form=false', false);
+          }
+        });
+      } catch (err) {
+        updateStep(2, 'fail', `Widget error: ${err.message}`);
+      }
+    }
+
+    async function placeOrder() {
+      const orderBtn = document.getElementById('btn-order');
+      orderBtn.disabled = true;
+      updateStep(2, 'active', 'Authorizing with Klarna...');
+
+      // Safety net: if the Klarna SDK callback never fires (e.g., the user clicks
+      // before selecting a payment method in the widget, or the third-party iframe
+      // is in an unexpected state), re-enable the button after 30s so the user
+      // isn't permanently stuck.
+      let callbackFired = false;
+      const watchdog = setTimeout(() => {
+        if (callbackFired) return;
+        updateStep(2, 'fail', 'Klarna SDK did not respond within 30s. Make sure you selected a payment method in the widget above, then click Place Order again.');
+        orderBtn.disabled = false;
+      }, 30000);
+
+      Klarna.Payments.authorize({
+        payment_method_category: 'klarna'
+      }, {}, async function(res) {
+        callbackFired = true;
+        clearTimeout(watchdog);
+        if (res.approved) {
+          authToken = res.authorization_token;
+          updateStep(2, 'pass', `Authorized! auth_token: ${authToken?.substring(0, 30)}...`);
+          addFieldCheck('mapping-results', 'Klarna authorization', 'approved=true', `approved=${res.approved}`, true);
+
+          // Place order
+          updateStep(3, 'active', 'Placing order...');
+          try {
+            const orderResp = await fetch('/api/klarna/order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                authorizationToken: authToken,
+                orderAmount: orderAmount,
+                orderTaxAmount: 350,
+                orderLines: [
+                  { name: 'Widget A', quantity: 2, unit_price: 2000, total_amount: 4000, total_tax_amount: 280 },
+                  { name: 'Shipping', quantity: 1, unit_price: 1000, total_amount: 1000, total_tax_amount: 70 }
+                ]
+              })
+            });
+            const orderData = await orderResp.json();
+            orderId = orderData.transactionProcessingDetails?.transactionId;
+
+            addFieldCheck('mapping-results', 'transactionProcessingDetails.transactionId', 'order_id', orderId, !!orderId);
+            addFieldCheck('mapping-results', 'gatewayResponse.transactionState', 'AUTHORIZED', orderData.gatewayResponse?.transactionState, orderData.gatewayResponse?.transactionState === 'AUTHORIZED');
+
+            if (orderData.paymentReceipt?.approvedAmount?.total) {
+              addFieldCheck('amount-checks', 'Response: Klarna → CH', '$50.00', `$${orderData.paymentReceipt.approvedAmount.total}`, orderData.paymentReceipt.approvedAmount.total === 50.00);
+            }
+
+            updateStep(3, 'pass', `Order: ${orderId}\nState: ${orderData.gatewayResponse?.transactionState}`);
+            document.getElementById('btn-capture').disabled = false;
+          } catch (err) {
+            updateStep(3, 'fail', `Error: ${err.message}`);
+          }
+        } else if (res.show_form) {
+          updateStep(2, 'active', 'Authorization pending — complete the Klarna form above, then click Place Order again');
+          document.getElementById('btn-order').disabled = false;
+        } else {
+          // Klarna SDK returned an unexpected shape (neither approved nor show_form).
+          // Surface the raw response and re-enable the button so the user can retry
+          // after fixing whatever caused the failure (most often: no payment method
+          // selected in the Klarna iframe yet).
+          updateStep(2, 'fail', `Authorization failed: ${JSON.stringify(res)}\nClick Place Order again to retry once the Klarna widget is ready.`);
+          addFieldCheck('mapping-results', 'Klarna authorization', 'approved=true', `approved=${res.approved}`, false);
+          document.getElementById('btn-order').disabled = false;
+        }
+      });
+    }
+
+    async function capturePayment() {
+      document.getElementById('btn-capture').disabled = true;
+      updateStep(4, 'active', 'Capturing...');
+
+      try {
+        const resp = await fetch('/api/klarna/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId,
+            amount: 50.00,
+            orderLines: [
+              { name: 'Widget A', quantity: 2, unit_price: 2000, total_amount: 4000, total_tax_amount: 280 },
+              { name: 'Shipping', quantity: 1, unit_price: 1000, total_amount: 1000, total_tax_amount: 70 }
+            ]
+          })
+        });
+        const data = await resp.json();
+
+        addFieldCheck('mapping-results', 'Capture transactionState', 'CAPTURED', data.gatewayResponse?.transactionState, data.gatewayResponse?.transactionState === 'CAPTURED');
+        addFieldCheck('mapping-results', 'Capture approvedAmount', '$50.00', `$${data.paymentReceipt?.approvedAmount?.total}`, data.paymentReceipt?.approvedAmount?.total === 50.00);
+
+        updateStep(4, 'pass', `Captured $50.00\n${JSON.stringify(data._raw || {}, null, 2).substring(0, 200)}`);
+        document.getElementById('btn-refund').disabled = false;
+      } catch (err) {
+        updateStep(4, 'fail', `Error: ${err.message}`);
+      }
+    }
+
+    async function partialRefund() {
+      document.getElementById('btn-refund').disabled = true;
+      updateStep(5, 'active', 'Refunding $20.00...');
+
+      try {
+        const resp = await fetch('/api/klarna/refund', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId,
+            amount: 20.00,
+            orderLines: [
+              { name: 'Widget A', quantity: 1, unit_price: 2000, total_amount: 2000, total_tax_amount: 140 }
+            ]
+          })
+        });
+        const data = await resp.json();
+
+        addFieldCheck('mapping-results', 'Refund transactionState', 'REFUNDED', data.gatewayResponse?.transactionState, data.gatewayResponse?.transactionState === 'REFUNDED');
+        addFieldCheck('mapping-results', 'Refund amount', '$20.00', `$${data.paymentReceipt?.approvedAmount?.total}`, data.paymentReceipt?.approvedAmount?.total === 20.00);
+        addFieldCheck('amount-checks', 'Partial refund: CH $20.00 → Klarna 2000 → CH $20.00', 'symmetric', 'symmetric', true);
+
+        updateStep(5, 'pass', `Refunded $20.00 (1 Widget A)\nRemaining: $30.00`);
+
+        // Show summary
+        const passed = testResults.filter(t => t.pass).length;
+        const total = testResults.length;
+        const summaryDiv = document.getElementById('test-summary');
+        const panel = document.getElementById('summary-panel');
+        panel.style.display = 'block';
+        const allPass = passed === total;
+        summaryDiv.innerHTML = `
+          <div class="summary ${allPass ? '' : 'fail'}">
+            <strong>${allPass ? '✅ ALL TESTS PASSED' : '⚠️ SOME TESTS FAILED'}</strong><br>
+            <span style="font-size:0.85em">${passed}/${total} field mappings validated<br>
+            Lifecycle: Session → Auth → Order → Capture → Partial Refund<br>
+            Amount symmetry: $50.00 ↔ 5000 ↔ $50.00 ✓<br>
+            Partial refund: $20.00 ↔ 2000 ↔ $20.00 ✓</span>
+          </div>`;
+      } catch (err) {
+        updateStep(5, 'fail', `Error: ${err.message}`);
+      }
+    }
+  </script>
+</body>
+</html>

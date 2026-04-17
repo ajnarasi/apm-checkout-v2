@@ -156,7 +156,21 @@ export class Inspector {
       status: document.querySelector('[data-runner-status]'),
       result: document.querySelector('[data-runner-result]'),
       summary: document.querySelector('[data-runner-summary]'),
+      // Sandbox creds section (Klarna / CashApp / PPRO)
+      credsRoot: document.querySelector('[data-runner-creds]'),
+      credsFields: document.querySelector('[data-runner-creds-fields]'),
+      credsReload: document.querySelector('[data-creds-reload]'),
+      credsToggle: document.querySelector('[data-creds-toggle]'),
+      credsRun: document.querySelector('[data-sandbox-run]'),
+      credsSub: document.querySelector('[data-creds-sub]'),
+      credsHint: document.querySelector('[data-creds-action-hint]'),
+      credsResult: document.querySelector('[data-creds-result]'),
+      credsStatus: document.querySelector('[data-creds-status]'),
+      credsBody: document.querySelector('[data-creds-result-body]'),
     };
+
+    this.sandboxCreds = null;
+    this.sandboxKey = null;
 
     this.eventLogEl = document.querySelector('[data-event-log]');
     this.netLogEl = document.querySelector('[data-net-log]');
@@ -171,10 +185,214 @@ export class Inspector {
     this.cache.btnRun.addEventListener('click', () => this.runActive());
     this.cache.btnRunAll.addEventListener('click', () => this.runEligibleBatch());
 
+    // Sandbox credential controls
+    if (this.cache.credsReload) {
+      this.cache.credsReload.addEventListener('click', () => this.reloadSandboxCreds());
+    }
+    if (this.cache.credsToggle) {
+      this.cache.credsToggle.addEventListener('click', () => this.toggleSandboxCredsFields());
+    }
+    if (this.cache.credsRun) {
+      this.cache.credsRun.addEventListener('click', () => this.runSandboxCall());
+    }
+
     // Live network inspector binding
     onNetlog(() => {
       if (this.activeTab === 'network') this.renderNetwork();
     });
+  }
+
+  // ─── Sandbox credentials (Klarna / CashApp / PPRO) ───────────
+  sandboxApmKey(entry) {
+    if (!entry) return null;
+    const id = String(entry.id || '').toLowerCase();
+    if (id === 'klarna' || id === 'cashapp' || id === 'ppro') return id;
+    if (entry.isPproRouted) return 'ppro';
+    return null;
+  }
+
+  async refreshSandboxCreds(entry) {
+    const key = this.sandboxApmKey(entry);
+    this.sandboxKey = key;
+    if (!this.cache.credsRoot) return;
+    if (!key) {
+      this.cache.credsRoot.hidden = true;
+      this.sandboxCreds = null;
+      return;
+    }
+    this.cache.credsRoot.hidden = false;
+    if (this.cache.credsResult) this.cache.credsResult.hidden = true;
+    if (this.cache.credsSub) {
+      const label = entry.displayName || entry.id;
+      this.cache.credsSub.textContent =
+        key === 'ppro'
+          ? `${label} routes through PPRO — using PPRO sandbox credentials.`
+          : `${label} sandbox credentials are pre-filled from the server.`;
+    }
+    try {
+      const resp = await api.sandboxDefaults(key);
+      this.sandboxCreds = resp && resp.creds ? resp.creds : null;
+      this.renderSandboxCredFields();
+    } catch (err) {
+      this.sandboxCreds = null;
+      if (this.cache.credsFields) {
+        this.cache.credsFields.innerHTML = `<div class="log__empty">Could not load sandbox defaults: ${escapeHtml(err?.message ?? 'error')}</div>`;
+      }
+    }
+  }
+
+  sandboxFieldSpec(key) {
+    if (key === 'klarna') {
+      return [
+        { key: 'baseUrl',    label: 'Base URL',    helper: 'Klarna playground endpoint' },
+        { key: 'username',   label: 'API username' },
+        { key: 'password',   label: 'API password', mono: true },
+        { key: 'merchantId', label: 'Merchant ID' },
+      ];
+    }
+    if (key === 'cashapp') {
+      return [
+        { key: 'baseUrl',    label: 'Base URL' },
+        { key: 'clientId',   label: 'Client ID' },
+        { key: 'apiKeyId',   label: 'API key id' },
+        { key: 'brandId',    label: 'Brand id' },
+        { key: 'merchantId', label: 'Merchant id' },
+      ];
+    }
+    if (key === 'ppro') {
+      return [
+        { key: 'baseUrl',    label: 'Base URL' },
+        { key: 'token',      label: 'Bearer token', mono: true },
+        { key: 'merchantId', label: 'Merchant id' },
+      ];
+    }
+    return [];
+  }
+
+  renderSandboxCredFields() {
+    const fields = this.sandboxFieldSpec(this.sandboxKey);
+    if (!this.cache.credsFields) return;
+    if (!fields.length || !this.sandboxCreds) {
+      this.cache.credsFields.innerHTML = '';
+      return;
+    }
+    this.cache.credsFields.innerHTML = fields
+      .map((f) => {
+        const value = this.sandboxCreds[f.key] ?? '';
+        const id = `creds-${this.sandboxKey}-${f.key}`;
+        const monoClass = f.mono ? ' field__input--mono' : '';
+        return `
+          <label class="field field--creds">
+            <span class="field__label">${escapeHtml(f.label)}</span>
+            <input type="text" id="${id}" class="field__input${monoClass}"
+                   data-cred-key="${escapeHtml(f.key)}"
+                   value="${escapeHtml(String(value))}"
+                   spellcheck="false" autocomplete="off" />
+            ${f.helper ? `<span class="field__helper">${escapeHtml(f.helper)}</span>` : ''}
+          </label>`;
+      })
+      .join('');
+    if (this.cache.credsHint) {
+      const actionName = this.sandboxKey === 'klarna'
+        ? 'Klarna POST /credit/session'
+        : this.sandboxKey === 'cashapp'
+          ? 'Cash App POST /customer-request'
+          : 'PPRO POST /payments/v2/payments';
+      this.cache.credsHint.textContent = `→ ${actionName}`;
+    }
+  }
+
+  readSandboxCredsFromForm() {
+    if (!this.cache.credsFields) return null;
+    const inputs = this.cache.credsFields.querySelectorAll('input[data-cred-key]');
+    const out = {};
+    for (const input of inputs) {
+      out[input.dataset.credKey] = input.value;
+    }
+    return out;
+  }
+
+  async reloadSandboxCreds() {
+    if (!this.apm) return;
+    await this.refreshSandboxCreds(this.apm);
+  }
+
+  toggleSandboxCredsFields() {
+    if (!this.cache.credsFields || !this.cache.credsToggle) return;
+    const isHidden = this.cache.credsFields.hidden;
+    this.cache.credsFields.hidden = !isHidden;
+    this.cache.credsToggle.textContent = isHidden ? 'Hide' : 'Show';
+    this.cache.credsToggle.setAttribute('aria-expanded', String(isHidden));
+  }
+
+  async runSandboxCall() {
+    if (!this.sandboxKey) return;
+    const key = this.sandboxKey;
+    const action = key === 'klarna' ? 'session' : key === 'cashapp' ? 'request' : 'charge';
+    const amount = parseFloat(this.cache.amount.value || '49.99');
+    const currency = this.cache.currency.value || 'USD';
+    const merchantReference =
+      this.cache.order.value || `harness-${Date.now().toString(36)}`;
+
+    const body =
+      key === 'klarna'
+        ? {
+            amount,
+            currency,
+            merchantReference,
+            shippingAddress: { country: 'US' },
+            billingAddress: { country: 'US' },
+            items: [
+              {
+                name: 'Harness test item',
+                quantity: 1,
+                unitPrice: amount,
+                grossAmount: amount,
+              },
+            ],
+          }
+        : key === 'cashapp'
+          ? { amount, currency, merchantReference }
+          : {
+              amount,
+              currency,
+              customerName: 'Harness Tester',
+              customerEmail: 'harness@example.com',
+              country: 'DE',
+              paymentMethod: 'SOFORT',
+              captureFlag: true,
+              returnUrl: 'https://harness.example/return',
+              merchantOrderId: merchantReference,
+            };
+
+    const overrides = this.readSandboxCredsFromForm();
+    if (overrides && Object.keys(overrides).length) body.__sandboxCreds = overrides;
+
+    if (this.cache.credsResult) this.cache.credsResult.hidden = false;
+    if (this.cache.credsStatus) {
+      this.cache.credsStatus.className = 'badge is-running';
+      this.cache.credsStatus.textContent = 'running';
+    }
+    if (this.cache.credsBody) this.cache.credsBody.textContent = '';
+    try {
+      const resp = await api.sandboxCall({ apm: key, action, body });
+      if (this.cache.credsStatus) {
+        this.cache.credsStatus.className = 'badge is-ok';
+        this.cache.credsStatus.textContent = 'ok';
+      }
+      if (this.cache.credsBody) {
+        this.cache.credsBody.textContent = JSON.stringify(resp, null, 2);
+      }
+    } catch (err) {
+      if (this.cache.credsStatus) {
+        this.cache.credsStatus.className = 'badge is-err';
+        this.cache.credsStatus.textContent = 'failed';
+      }
+      if (this.cache.credsBody) {
+        const detail = err?.body ?? { error: err?.message ?? 'unknown' };
+        this.cache.credsBody.textContent = JSON.stringify(detail, null, 2);
+      }
+    }
   }
 
   load(entry) {
@@ -224,6 +442,8 @@ export class Inspector {
     this.setTab(this.activeTab);
     this.resetRunnerResult();
     this.updateCallbacksLiveBadge();
+    // Fire-and-forget sandbox creds fetch for Klarna / CashApp / PPRO.
+    this.refreshSandboxCreds(entry);
   }
 
   fillCurrencyOptions(currencies) {
